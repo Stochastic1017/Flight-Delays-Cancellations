@@ -8,12 +8,12 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.service import Service as FirefoxService
+from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from multiprocessing import Pool
 from tqdm import tqdm
 from datetime import datetime
+import time  # Added for retry delays
 
 def extract_pagination_text(driver):
     """
@@ -67,13 +67,14 @@ def click_pagination_link(driver, page_number):
     )
     logging.info(f"Successfully clicked page {page_number}.")
 
-def get_all_download_links(driver, master_url):
+def get_all_download_links(driver, master_url, retry_limit=3):
     """
-    Returns a list of all .tar.gz file links (from all pages).
+    Returns a list of all .tar.gz file links (from all pages), with retry logic.
 
     Parameters:
     driver (webdriver): The Selenium WebDriver instance.
     master_url (str): The base URL of the page containing .tar.gz files.
+    retry_limit (int): Number of retries if the page fails to load correctly.
 
     Returns:
     list: A list of all download links found on the pages.
@@ -81,101 +82,109 @@ def get_all_download_links(driver, master_url):
     logging.info(f"Navigating to base URL: {master_url}")
     driver.get(master_url)
 
-    logging.info("Extracting pagination text to calculate number of pages.")
-    pages_to_collect = compute_pages_to_scrape(extract_pagination_text(driver))
+    retries = 0
+    while retries < retry_limit:
+        try:
+            logging.info("Extracting pagination text to calculate number of pages.")
+            pagination_text = extract_pagination_text(driver)
+            pages_to_collect = compute_pages_to_scrape(pagination_text)
 
-    regex = r"lcd_v2.0.0_d.*.tar.gz$"
-    download_links = []
+            if pages_to_collect == 0:
+                raise ValueError("Total entries returned as 0, retrying...")
 
-    logging.info(f"Total pages to process: {pages_to_collect}")
-    for page in range(1, pages_to_collect + 1):
-        logging.info(f"Processing master page {page}.")
-        click_pagination_link(driver, page)
-        WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "a")))
+            regex = r"lcd_v2.0.0_d.*.tar.gz$"
+            download_links = []
 
-        hyperlinks = driver.find_elements(By.TAG_NAME, "a")
-        logging.info(f"Found {len(hyperlinks)} hyperlinks on page {page}.")
-        
-        for link in hyperlinks:
-            href = link.get_attribute('href')
-            if href and re.search(regex, href):
-                download_links.append(href)
-                logging.info(f"Collected link: {href}")
+            logging.info(f"Total pages to process: {pages_to_collect}")
+            for page in range(1, pages_to_collect + 1):
+                logging.info(f"Processing master page {page}.")
+                click_pagination_link(driver, page)
+                WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "a")))
 
-    logging.info(f"Finished collecting download links from all pages. Total links found: {len(download_links)}")
-    return download_links
+                hyperlinks = driver.find_elements(By.TAG_NAME, "a")
+                logging.info(f"Found {len(hyperlinks)} hyperlinks on page {page}.")
+                
+                for link in hyperlinks:
+                    href = link.get_attribute('href')
+                    if href and re.search(regex, href):
+                        download_links.append(href)
+                        logging.info(f"Collected link: {href}")
+
+            logging.info(f"Finished collecting download links from all pages. Total links found: {len(download_links)}")
+            return download_links
+
+        except Exception as e:
+            retries += 1
+            logging.error(f"Attempt {retries}/{retry_limit} failed: {str(e)}")
+            time.sleep(2)  # Backoff before retrying
+
+    logging.error("Failed to collect download links after multiple retries.")
+    return []
 
 def setup_webdriver():
     """
-    Sets up and returns a WebDriver instance for Chrome using cached ChromeDriver.
+    Sets up and returns a WebDriver instance using cached geckodriver.
 
     Returns:
-    webdriver.Chrome: A headless Chrome WebDriver instance.
-
-    Raises:
-    Exception: If WebDriver setup fails for any reason.
+    webdriver: The Selenium WebDriver instance for Firefox in headless mode.
     """
-    try:                                                                                    
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")               # Run in headless mode                             
-        chrome_options.add_argument("--disable-extensions")     # Disable extensions                               
-        chrome_options.add_argument("--disable-gpu")            # Disable GPU                                      
-        chrome_options.add_argument("--no-sandbox")             # No sandbox                                       
-        chrome_options.add_argument("--disable-dev-shm-usage")  # Disable shared memory usage
-
-        # Initialize Chrome WebDriver with the correct options                                                     
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), 
-                                  options=chrome_options)
-        return driver
-
-    except Exception as e:
-        raise Exception(f"Failed to setup WebDriver: {str(e)}")
+    logging.info("Setting up the WebDriver.")
+    geckodriver_path = "/home/stochastic1017/.wdm/drivers/geckodriver/linux64/v0.35.0/geckodriver"
+    service = FirefoxService(executable_path=geckodriver_path)
+    options = FirefoxOptions()
+    options.add_argument("--headless")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    
+    driver = webdriver.Firefox(service=service, options=options)
+    logging.info("WebDriver successfully set up.")
+    return driver
 
 def setup_logging():
     """
-    Sets up basic logging configuration, creating a log file and logging both to the file 
-    and to the console.
-
-    The logging setup ensures that all log messages (INFO level and higher) are saved in a 
-    timestamped log file within a 'logs' directory. It also streams log messages to the console 
-    to provide real-time feedback.
-
-    The log directory is created if it doesn't already exist.
-
+    Sets up basic logging configuration.
     """
     log_base_dir = 'logs'
-    os.makedirs(log_base_dir, exist_ok=True)  # Create 'logs' directory if it doesn't exist
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')  # Current timestamp for the log filename
+    os.makedirs(log_base_dir, exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     logging.basicConfig(
-        filename=os.path.join(log_base_dir, f'scrape_{timestamp}.log'),  # Set log file name with timestamp
-        level=logging.INFO,  # Set logging level to INFO
-        format='%(asctime)s - %(levelname)s - %(message)s'  # Set log message format
+        filename=os.path.join(log_base_dir, f'scrape_{timestamp}.log'),
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
     )
-    # Also log to console
     logging.getLogger().addHandler(logging.StreamHandler())
-    
-    logging.info("Logging setup complete.")  # Log that the logging setup is complete
+    logging.info("Logging setup complete.")
 
-
-def try_download_url(url, output_path):
+def try_download_url(url, output_path, retry_limit=5):
     """
-    Attempts to download a file from a specific URL.
+    Attempts to download a file from a specific URL, with retry logic.
 
     Parameters:
     url (str): The URL of the file to download.
     output_path (str): The path where the file will be saved.
+    retry_limit (int): Number of retries if the download fails.
 
     Returns:
     bool: True if the download was successful, False otherwise.
     """
-    logging.info(f"Attempting to download {url}.")
-    try:
-        subprocess.run(['wget', '-O', output_path, url], check=True, capture_output=True, text=True)
-        logging.info(f"Successfully downloaded {url} to {output_path}.")
-        return True
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Failed to download {url}: {str(e)}")
-        return False
+    retries = 0
+    while retries < retry_limit:
+        try:
+            logging.info(f"Attempting to download {url}.")
+            subprocess.run(['wget', '-O', output_path, url], check=True, capture_output=True, text=True)
+            logging.info(f"Successfully downloaded {url} to {output_path}.")
+            return True
+        except subprocess.CalledProcessError as e:
+            retries += 1
+            logging.error(f"Failed to download {url}. Attempt {retries}/{retry_limit}: {str(e)}")
+            if retries < retry_limit:
+                logging.info(f"Retrying download for {url}...")
+                time.sleep(2)  # Exponential backoff can be added here if desired
+            else:
+                logging.error(f"Failed to download {url} after {retry_limit} attempts.")
+                return False
 
 def download_link_wrapper(args):
     """
