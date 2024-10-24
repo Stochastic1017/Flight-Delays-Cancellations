@@ -106,17 +106,26 @@ def get_all_download_links(driver, master_url):
     return download_links
 
 def setup_webdriver():
-    """Sets up and returns a WebDriver instance using cached geckodriver."""
+    """
+    Sets up and returns a WebDriver instance for Chrome using cached ChromeDriver.
+
+    Returns:
+    webdriver.Chrome: A headless Chrome WebDriver instance.
+
+    Raises:
+    Exception: If WebDriver setup fails for any reason.
+    """
     try:                                                                                    
         chrome_options = Options()
         chrome_options.add_argument("--headless")               # Run in headless mode                             
         chrome_options.add_argument("--disable-extensions")     # Disable extensions                               
         chrome_options.add_argument("--disable-gpu")            # Disable GPU                                      
         chrome_options.add_argument("--no-sandbox")             # No sandbox                                       
-        chrome_options.add_argument("--disable-dev-shm-usage")  # Disable dev-shm usage                            
+        chrome_options.add_argument("--disable-dev-shm-usage")  # Disable shared memory usage
 
         # Initialize Chrome WebDriver with the correct options                                                     
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), 
+                                  options=chrome_options)
         return driver
 
     except Exception as e:
@@ -124,18 +133,29 @@ def setup_webdriver():
 
 def setup_logging():
     """
-    Sets up basic logging configuration.
+    Sets up basic logging configuration, creating a log file and logging both to the file 
+    and to the console.
+
+    The logging setup ensures that all log messages (INFO level and higher) are saved in a 
+    timestamped log file within a 'logs' directory. It also streams log messages to the console 
+    to provide real-time feedback.
+
+    The log directory is created if it doesn't already exist.
+
     """
     log_base_dir = 'logs'
-    os.makedirs(log_base_dir, exist_ok=True)
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    os.makedirs(log_base_dir, exist_ok=True)  # Create 'logs' directory if it doesn't exist
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')  # Current timestamp for the log filename
     logging.basicConfig(
-        filename=os.path.join(log_base_dir, f'scrape_{timestamp}.log'),
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
+        filename=os.path.join(log_base_dir, f'scrape_{timestamp}.log'),  # Set log file name with timestamp
+        level=logging.INFO,  # Set logging level to INFO
+        format='%(asctime)s - %(levelname)s - %(message)s'  # Set log message format
     )
+    # Also log to console
     logging.getLogger().addHandler(logging.StreamHandler())
-    logging.info("Logging setup complete.")
+    
+    logging.info("Logging setup complete.")  # Log that the logging setup is complete
+
 
 def try_download_url(url, output_path):
     """
