@@ -8,8 +8,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.firefox.service import Service as FirefoxService
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from multiprocessing import Pool
 from tqdm import tqdm
 from datetime import datetime
@@ -105,25 +106,21 @@ def get_all_download_links(driver, master_url):
     return download_links
 
 def setup_webdriver():
-    """
-    Sets up and returns a WebDriver instance using cached geckodriver.
+    """Sets up and returns a WebDriver instance using cached geckodriver."""
+    try:                                                                                    
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")               # Run in headless mode                             
+        chrome_options.add_argument("--disable-extensions")     # Disable extensions                               
+        chrome_options.add_argument("--disable-gpu")            # Disable GPU                                      
+        chrome_options.add_argument("--no-sandbox")             # No sandbox                                       
+        chrome_options.add_argument("--disable-dev-shm-usage")  # Disable dev-shm usage                            
 
-    Returns:
-    webdriver: The Selenium WebDriver instance for Firefox in headless mode.
-    """
-    logging.info("Setting up the WebDriver.")
-    geckodriver_path = "/home/stochastic1017/.wdm/drivers/geckodriver/linux64/v0.35.0/geckodriver"
-    service = FirefoxService(executable_path=geckodriver_path)
-    options = FirefoxOptions()
-    options.add_argument("--headless")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    
-    driver = webdriver.Firefox(service=service, options=options)
-    logging.info("WebDriver successfully set up.")
-    return driver
+        # Initialize Chrome WebDriver with the correct options                                                     
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        return driver
+
+    except Exception as e:
+        raise Exception(f"Failed to setup WebDriver: {str(e)}")
 
 def setup_logging():
     """
