@@ -192,6 +192,3 @@ def get_us_data(datasetid, token, startdate, enddate, state_fips=["FIPS:06", "FI
         df.to_csv(f"{datasetid}_{startdate}_{enddate}_US_data.csv", index=False)
     else:
         print("No data retrieved.")
-
-datasetid = "GSOM"
-fip_ids = pd.read_csv(f"state_per_data/{datasetid}_ST.csv")['id']
