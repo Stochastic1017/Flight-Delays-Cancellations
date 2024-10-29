@@ -4,17 +4,12 @@ import plotly.express as px
 from dash import dcc, html, callback, Output, Input
 
 # Load station and airport data with updated columns
-df_station = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/ghcnd-stations.csv")
-df_airport = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/airports-list.csv")
+df_station = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/ghcnd-stations-us.csv")
+df_airport = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/airports-list-us.csv")
+df_station.loc[df_station["Elevation"] <= -999, "Elevation"] = 0
 
-# Filter for US airports only
-df_station = df_station[df_station["Station ID"].str.startswith("US")].reset_index(drop=True)
-df_station.loc[df_station["Elevation"] <= -999] = 0
-
-df_airport = df_airport[df_airport["AIRPORT_COUNTRY_CODE_ISO"] == "US"].reset_index(drop=True)
-
-# List of states for dropdown, starting with "All"
-states = ["All"] + sorted(df_airport['AIRPORT_STATE_CODE'].dropna().unique())
+# List of states for dropdown
+states = sorted(df_airport['AIRPORT_STATE_CODE'].dropna().unique())
 
 # Define a custom color sequence and assign colors per state
 colors = (
@@ -30,7 +25,6 @@ colors = (
     px.colors.cyclical.Edge +
     px.colors.cyclical.HSV
 )
-# Create a color mapping for consistent state colors
 unique_states = df_airport['AIRPORT_STATE_CODE'].unique()
 state_color_map = {state: colors[i % len(colors)] for i, state in enumerate(unique_states)}
 
@@ -38,12 +32,11 @@ state_color_map = {state: colors[i % len(colors)] for i, state in enumerate(uniq
 elevation_min = df_station['Elevation'].min()
 elevation_max = df_station['Elevation'].max()
 
-
-# Define the layout with a dropdown for data selection and state selection
+# Define the layout with dropdowns for data selection, state selection, and city selection
 estimation_layout = html.Div([
     html.H1("US Map: Weather Stations & Airports", style={'text-align': 'center', 'color': '#333'}),
     
-    # Dropdowns for data type and state selection
+    # Dropdowns for data type, state, and city selection
     html.Div([
         dcc.Dropdown(
             id='data-selector',
@@ -51,18 +44,23 @@ estimation_layout = html.Div([
                 {'label': 'Weather Stations', 'value': 'stations'},
                 {'label': 'Airports', 'value': 'airports'}
             ],
-            value='stations',  # Default value
+            clearable=False,
+            value='stations',
             style={'width': '300px', 'margin': '10px auto'}
         ),
         dcc.Dropdown(
             id='state-selector',
             options=[{'label': state, 'value': state} for state in states],
-            value='All',  # Default value
             placeholder="Select a state",
+            style={'width': '300px', 'margin': '10px auto'}
+        ),
+        dcc.Dropdown(
+            id='city-selector',
+            placeholder="Select a city",
             style={'width': '300px', 'margin': '10px auto'}
         )
     ], style={'text-align': 'center'}),
-
+    
     # Map display
     dcc.Graph(
         id="station-map",
@@ -71,17 +69,47 @@ estimation_layout = html.Div([
     )
 ])
 
+# Callback to populate city dropdown based on selected data type and state
 @callback(
-    Output("station-map", "figure"),
+    Output("city-selector", "options"),
     [Input("data-selector", "value"), Input("state-selector", "value")]
 )
-
-def update_map(selected_data, selected_state):
-    
-   # Select data source based on dropdown selection
+def update_city_dropdown(selected_data, selected_state):
+    # Filter data based on selection
     if selected_data == 'stations':
         df = df_station
-        hover_data = {"Elevation": True, "State": True}
+        city_column = "City"
+    else:
+        df = df_airport
+        city_column = "City"
+
+    # Filter by state if a specific state is selected
+    if selected_state:
+        df = df[df['State'] == selected_state if selected_data == 'stations' else df['AIRPORT_STATE_CODE'] == selected_state]
+    
+    # Extract unique cities
+    cities = sorted(df[city_column].dropna().unique())
+    return [{'label': city, 'value': city} for city in cities]
+
+# Callback to update map based on dropdown selections
+@callback(
+    Output("station-map", "figure"),
+    [Input("data-selector", "value"), Input("state-selector", "value"), Input("city-selector", "value")]
+)
+def update_map(selected_data, selected_state, selected_city):
+    # Select data source based on dropdown selection
+    if selected_data == 'stations':
+        df = df_station
+        hover_data = {
+            "Station Name": True,
+            "Station ID": True,
+            "Latitude": True,
+            "Longitude": True,
+            "Elevation": True, 
+            "State": True,
+            "City": True,
+            "County": True,
+            }
         color_column = "Elevation"
         hover_name = "Station ID"
         marker_size = 8
@@ -92,7 +120,7 @@ def update_map(selected_data, selected_state):
         df = df_airport
         hover_data = {
             "DISPLAY_AIRPORT_NAME": True,
-            "DISPLAY_AIRPORT_CITY_NAME_FULL": True,
+            "City": True,
             "AIRPORT_STATE_NAME": True,
             "AIRPORT_STATE_CODE": True,
             "AIRPORT_WAC": True
@@ -106,11 +134,12 @@ def update_map(selected_data, selected_state):
         color_column = "AIRPORT_STATE_CODE"  # Set the color column to mapped state colors
 
     # Apply state filter if a specific state is selected
-    if selected_state != "All":
-        if selected_data == 'stations':
-            df = df[df['State'] == selected_state]
-        else:
-            df = df[df['AIRPORT_STATE_CODE'] == selected_state]
+    if selected_state:
+        df = df[df['State'] == selected_state] if selected_data == 'stations' else df[df['AIRPORT_STATE_CODE'] == selected_state]
+    
+    # Apply city filter if a specific city is selected
+    if selected_city:
+        df = df[df['City'] == selected_city] if selected_data == 'stations' else df[df['City'] == selected_city]
 
     # Create the map figure
     fig = px.scatter_mapbox(
@@ -123,7 +152,8 @@ def update_map(selected_data, selected_state):
         color_discrete_map=state_color_map if selected_data == 'airports' else None,
         color_continuous_scale=color_scale if selected_data == 'stations' else None,
         zoom=3.5,
-        center={"lat": 37.0902, "lon": -95.7129}
+        center={"lat": 37.0902, "lon": -95.7129},
+        opacity=0.5
     )
 
     # Update marker size
