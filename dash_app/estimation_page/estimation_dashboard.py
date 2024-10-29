@@ -4,10 +4,13 @@ import plotly.express as px
 from dash import dcc, html, callback, Output, Input
 
 # Load station and airport data with updated columns
-df_station = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/ghcnd-stations-us.csv")
+df_station = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/ghcnd-stations.csv")
 df_airport = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/airports-list.csv")
 
 # Filter for US airports only
+df_station = df_station[df_station["Station ID"].str.startswith("US")].reset_index(drop=True)
+df_station.loc[df_station["Elevation"] <= -999] = 0
+
 df_airport = df_airport[df_airport["AIRPORT_COUNTRY_CODE_ISO"] == "US"].reset_index(drop=True)
 
 # List of states for dropdown, starting with "All"
@@ -27,7 +30,6 @@ colors = (
     px.colors.cyclical.Edge +
     px.colors.cyclical.HSV
 )
-
 # Create a color mapping for consistent state colors
 unique_states = df_airport['AIRPORT_STATE_CODE'].unique()
 state_color_map = {state: colors[i % len(colors)] for i, state in enumerate(unique_states)}
@@ -35,6 +37,7 @@ state_color_map = {state: colors[i % len(colors)] for i, state in enumerate(uniq
 # Set fixed color range for Elevation in weather stations
 elevation_min = df_station['Elevation'].min()
 elevation_max = df_station['Elevation'].max()
+
 
 # Define the layout with a dropdown for data selection and state selection
 estimation_layout = html.Div([
@@ -75,15 +78,15 @@ estimation_layout = html.Div([
 
 def update_map(selected_data, selected_state):
     
-    # Select data source based on dropdown selection
+   # Select data source based on dropdown selection
     if selected_data == 'stations':
         df = df_station
         hover_data = {"Elevation": True, "State": True}
         color_column = "Elevation"
         hover_name = "Station ID"
         marker_size = 8
-        color_scale = px.colors.cyclical.IceFire
-        color_range = [elevation_min, elevation_max]
+        color_scale = "Inferno"
+        color_range = [elevation_min, elevation_max]  # Fixed color
     
     else:
         df = df_airport
