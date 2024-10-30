@@ -3,166 +3,197 @@ import pandas as pd
 import plotly.express as px
 from dash import dcc, html, callback, Output, Input
 
-# Load station and airport data with updated columns
-df_station = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/ghcnd-stations-us.csv")
+# Mapbox token (hidden)
+mapbox_token = "pk.eyJ1Ijoic3RvY2hhc3RpYzEwMTciLCJhIjoiY20ydmJpMzhrMGIwdDJqb2NoZGt5emw0YiJ9.QJXmXS_gHKVxDV4mVkmIOw"
+px.set_mapbox_access_token(mapbox_token)
+
+# Load data (keeping your existing data loading code)
+df_station = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/ncei-lcd-list-us.csv")
 df_airport = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/airports-list-us.csv")
-df_station.loc[df_station["Elevation"] <= -999, "Elevation"] = 0
 
 # List of states for dropdown
 states = sorted(df_airport['AIRPORT_STATE_CODE'].dropna().unique())
 
-# Define a custom color sequence and assign colors per state
-colors = (
-    px.colors.qualitative.Set1 +
-    px.colors.qualitative.Set2 +
-    px.colors.qualitative.Set3 +
-    px.colors.qualitative.Pastel1 +
-    px.colors.qualitative.Bold +
-    px.colors.qualitative.Safe +
-    px.colors.qualitative.Pastel2 +
-    px.colors.cyclical.IceFire +
-    px.colors.cyclical.Phase +
-    px.colors.cyclical.Edge +
-    px.colors.cyclical.HSV
-)
-unique_states = df_airport['AIRPORT_STATE_CODE'].unique()
-state_color_map = {state: colors[i % len(colors)] for i, state in enumerate(unique_states)}
+# Color scales
+weather_color_scale = px.colors.cyclical.IceFire
 
-# Set fixed color range for Elevation in weather stations
-elevation_min = df_station['Elevation'].min()
-elevation_max = df_station['Elevation'].max()
-
-# Define the layout with dropdowns for data selection, state selection, and city selection
+# Layout with improved styling and inline CSS
 estimation_layout = html.Div([
-    html.H1("US Map: Weather Stations & Airports", style={'text-align': 'center', 'color': '#333'}),
+    html.H1("Enhanced US Map: Weather Stations & Airports", 
+            style={
+                'text-align': 'center', 
+                'color': '#333',
+                'margin': '20px 0',
+                'font-family': 'Arial, sans-serif'
+            }),
     
-    # Dropdowns for data type, state, and city selection
+    # Control panel
     html.Div([
-        dcc.Dropdown(
-            id='data-selector',
-            options=[
-                {'label': 'Weather Stations', 'value': 'stations'},
-                {'label': 'Airports', 'value': 'airports'}
-            ],
-            clearable=False,
-            value='stations',
-            style={'width': '300px', 'margin': '10px auto'}
-        ),
-        dcc.Dropdown(
-            id='state-selector',
-            options=[{'label': state, 'value': state} for state in states],
-            placeholder="Select a state",
-            style={'width': '300px', 'margin': '10px auto'}
-        ),
-        dcc.Dropdown(
-            id='city-selector',
-            placeholder="Select a city",
-            style={'width': '300px', 'margin': '10px auto'}
-        )
-    ], style={'text-align': 'center'}),
+        html.Div([
+            html.Label('Select Data Type', style={
+                'font-weight': 'bold',
+                'margin-bottom': '8px',
+                'display': 'block'
+            }),
+            dcc.Dropdown(
+                id='data-selector',
+                options=[
+                    {'label': 'Weather Stations', 'value': 'stations'},
+                    {'label': 'Airports', 'value': 'airports'},
+                ],
+                value='stations',
+                className='custom-dropdown'
+            )
+        ], style={'margin-bottom': '25px'}),
+        
+        html.Div([
+            html.Label('Map Style', style={
+                'font-weight': 'bold',
+                'margin-bottom': '8px',
+                'display': 'block'
+            }),
+            dcc.Dropdown(
+                id='mapbox-style-selector',
+                options=[
+                    {'label': 'Streets', 'value': 'streets-v11'},
+                    {'label': 'Satellite', 'value': 'satellite-v9'},
+                    {'label': 'Dark', 'value': 'dark-v10'},
+                    {'label': 'Light', 'value': 'light-v10'},
+                    {'label': 'Outdoors', 'value': 'outdoors-v11'},
+                ],
+                value='streets-v11',
+                className='custom-dropdown'
+            )
+        ], style={'margin-bottom': '25px'}),
+        
+        html.Div([
+            html.Label('Marker Size', style={
+                'font-weight': 'bold',
+                'margin-bottom': '8px',
+                'display': 'block'
+            }),
+            dcc.Slider(
+                id='marker-size',
+                min=5,
+                max=25,
+                step=1,
+                value=15,
+                marks={i: str(i) for i in range(5, 26, 5)},
+                className='custom-slider'
+            )
+        ], style={'margin-bottom': '25px'}),
+        
+        html.Div([
+            html.Label('Marker Opacity', style={
+                'font-weight': 'bold',
+                'margin-bottom': '8px',
+                'display': 'block'
+            }),
+            dcc.Slider(
+                id='marker-opacity',
+                min=0.1,
+                max=1.0,
+                step=0.1,
+                value=0.7,
+                marks={i/10: str(i/10) for i in range(1, 11)},
+                className='custom-slider'
+            )
+        ], style={'margin-bottom': '25px'}),
+    ], style={
+        'width': '320px',
+        'float': 'left',
+        'padding': '30px',
+        'background': '#f8f9fa',
+        'border-radius': '10px',
+        'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
+        'margin': '20px',
+        'font-family': 'Arial, sans-serif'
+    }),
     
     # Map display
-    dcc.Graph(
-        id="station-map",
-        config={"scrollZoom": True},
-        style={'width': '80vw', 'height': '80vh'}
-    )
+    html.Div([
+        dcc.Graph(
+            id="enhanced-map",
+            config={"scrollZoom": True},
+            style={'width': 'calc(100% - 360px)', 'height': '80vh'}
+        )
+    ], style={'margin-left': '360px', 'padding': '20px'}),
+    
 ])
 
-# Callback to populate city dropdown based on selected data type and state
 @callback(
-    Output("city-selector", "options"),
-    [Input("data-selector", "value"), Input("state-selector", "value")]
+    Output("enhanced-map", "figure"),
+    [Input("data-selector", "value"),
+     Input("mapbox-style-selector", "value"),
+     Input("marker-size", "value"),
+     Input("marker-opacity", "value")]
 )
-def update_city_dropdown(selected_data, selected_state):
-    # Filter data based on selection
+def update_enhanced_map(selected_data, mapbox_style, marker_size, marker_opacity):
+    
     if selected_data == 'stations':
-        df = df_station
-        city_column = "City"
+        fig = create_enhanced_weather_map(
+            df_station,
+            marker_size=marker_size,
+            marker_opacity=marker_opacity
+        )
+        
     else:
-        df = df_airport
-        city_column = "City"
-
-    # Filter by state if a specific state is selected
-    if selected_state:
-        df = df[df['State'] == selected_state if selected_data == 'stations' else df['AIRPORT_STATE_CODE'] == selected_state]
+        fig = create_enhanced_airport_map(
+            df_airport,
+            marker_size=marker_size,
+            marker_opacity=marker_opacity
+        )
     
-    # Extract unique cities
-    cities = sorted(df[city_column].dropna().unique())
-    return [{'label': city, 'value': city} for city in cities]
-
-# Callback to update map based on dropdown selections
-@callback(
-    Output("station-map", "figure"),
-    [Input("data-selector", "value"), Input("state-selector", "value"), Input("city-selector", "value")]
-)
-def update_map(selected_data, selected_state, selected_city):
-    # Select data source based on dropdown selection
-    if selected_data == 'stations':
-        df = df_station
-        hover_data = {
-            "Station Name": True,
-            "Station ID": True,
-            "Latitude": True,
-            "Longitude": True,
-            "Elevation": True, 
-            "State": True,
-            "City": True,
-            "County": True,
-            }
-        color_column = "Elevation"
-        hover_name = "Station ID"
-        marker_size = 8
-        color_scale = "Inferno"
-        color_range = [elevation_min, elevation_max]  # Fixed color
-    
-    else:
-        df = df_airport
-        hover_data = {
-            "DISPLAY_AIRPORT_NAME": True,
-            "City": True,
-            "AIRPORT_STATE_NAME": True,
-            "AIRPORT_STATE_CODE": True,
-            "AIRPORT_WAC": True
-        }
-        hover_name = "AIRPORT"
-        marker_size = 10
-        color_range = None
-
-        # Map state colors to each airport based on predefined state colors
-        df['StateColor'] = df['AIRPORT_STATE_CODE'].map(state_color_map)
-        color_column = "AIRPORT_STATE_CODE"  # Set the color column to mapped state colors
-
-    # Apply state filter if a specific state is selected
-    if selected_state:
-        df = df[df['State'] == selected_state] if selected_data == 'stations' else df[df['AIRPORT_STATE_CODE'] == selected_state]
-    
-    # Apply city filter if a specific city is selected
-    if selected_city:
-        df = df[df['City'] == selected_city] if selected_data == 'stations' else df[df['City'] == selected_city]
-
-    # Create the map figure
-    fig = px.scatter_mapbox(
-        df,
-        lat="Latitude" if selected_data == 'stations' else "LATITUDE",
-        lon="Longitude" if selected_data == 'stations' else "LONGITUDE",
-        hover_name=hover_name,
-        hover_data=hover_data,
-        color=color_column,
-        color_discrete_map=state_color_map if selected_data == 'airports' else None,
-        color_continuous_scale=color_scale if selected_data == 'stations' else None,
-        zoom=3.5,
-        center={"lat": 37.0902, "lon": -95.7129},
-        opacity=0.5
-    )
-
-    # Update marker size
-    fig.update_traces(marker=dict(size=marker_size))
-
-    # Update map layout
     fig.update_layout(
-        mapbox_style="carto-positron",
-        margin={"r": 10, "t": 10, "l": 10, "b": 10}
+        mapbox=dict(
+            style=f"mapbox://styles/mapbox/{mapbox_style}",
+            accesstoken=mapbox_token,
+            zoom=3.5,
+            center={"lat": 37.0902, "lon": -95.7129},
+        ),
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
+        showlegend=False
     )
     
     return fig
+
+def create_enhanced_weather_map(df, marker_size=15, marker_opacity=0.7):
+    return px.scatter_mapbox(
+        df,
+        lat="latitude",
+        lon="longitude",
+        hover_name="station_name",
+        hover_data={
+            "station_name": True,
+            "elevation": True,
+            "admin1": True,
+            "admin2": True
+        },
+        color="elevation",
+        color_continuous_scale=weather_color_scale,
+        range_color=[df['elevation'].min(), df['elevation'].max()],
+    ).update_traces(
+        marker=dict(
+            size=marker_size,
+            opacity=marker_opacity,
+        )
+    )
+
+def create_enhanced_airport_map(df, marker_size=15, marker_opacity=0.7):
+    return px.scatter_mapbox(
+        df,
+        lat="LATITUDE",
+        lon="LONGITUDE",
+        hover_name="AIRPORT",
+        hover_data={
+            "DISPLAY_AIRPORT_NAME": True,
+            "City": True,
+            "AIRPORT_STATE_NAME": True
+        },
+        color="AIRPORT_STATE_CODE",
+    ).update_traces(
+        marker=dict(
+            size=marker_size,
+            opacity=marker_opacity,
+        )
+    )
