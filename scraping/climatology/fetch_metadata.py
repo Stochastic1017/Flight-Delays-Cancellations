@@ -16,7 +16,7 @@ def parse_coord(item):
     
 # Change directory to the folder containing CSV files
 os.chdir("/home/stochastic1017/Documents/Flight-Delays-Cancellations/2023")
-files = glob("*.csv")
+files = glob("*.csv")[:10]
 
 # Initialize lists to collect data
 coords = []
@@ -79,7 +79,24 @@ result_df = pd.DataFrame({
     "country": countries
 })
 
+# Mapping of state names to two-letter codes
+state_code_map = {
+    'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR', 'California': 'CA', 
+    'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE', 'Florida': 'FL', 'Georgia': 'GA', 
+    'Hawaii': 'HI', 'Idaho': 'ID', 'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS', 
+    'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD', 'Massachusetts': 'MA', 
+    'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS', 'Missouri': 'MO', 'Montana': 'MT', 
+    'Nebraska': 'NE', 'Nevada': 'NV', 'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 
+    'New York': 'NY', 'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK', 
+    'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC', 'South Dakota': 'SD', 
+    'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT', 'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 
+    'West Virginia': 'WV', 'Wisconsin': 'WI', 'Wyoming': 'WY', 'Washington, D.C.': 'DC'
+}
+
+# Map the state names to state codes and add as a new column
+result_df['state'] = result_df['admin1'].map(state_code_map)
+
 # Save result to CSV
 print("Saving result.")
-result_df.to_csv("ncei-lcd-list_new.csv", index=False)
+result_df.to_csv("ncei-lcd-list.csv", index=False)
 print("Completed metadata extraction.")
