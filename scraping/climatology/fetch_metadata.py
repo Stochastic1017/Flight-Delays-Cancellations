@@ -1,9 +1,19 @@
 
+import sys
 import os
 from glob import glob
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 import reverse_geocoder as rg
 import ast
+
+# Check if year is provided as a command-line argument
+if len(sys.argv) < 2:
+    print("Usage: python fetch_metadata.py <year>")
+    sys.exit(1)
+
+# Get year from command-line argument
+year = sys.argv[1]
 
 # Function to safely parse coordinates
 def parse_coord(item):
@@ -14,46 +24,57 @@ def parse_coord(item):
         # Return None if the format is incorrect
         return None
     
-# Change directory to the folder containing CSV files
-os.chdir("/home/stochastic1017/Documents/Flight-Delays-Cancellations/2023")
-files = glob("*.csv")[:10]
+# Define the main directory
+main_dir = os.getcwd()
+os.chdir(f"{main_dir}/{year}")
 
-# Initialize lists to collect data
-coords = []
-station_name = []
-elevation = []
+# List CSV files
+files = glob("*.csv")
 
-# Process each CSV file
-for i, file in enumerate(files):
-    print(f"Currently at file: {file}. At: {i + 1} out of {len(files)}")
-    df = pd.read_csv(file, low_memory=False)
-    
-    # Collect latitude, longitude, station name, and elevation
-    coords.append((df["LATITUDE"][0], df["LONGITUDE"][0]))
-    station_name.append(df["NAME"][0])
-    elevation.append(df["ELEVATION"][0])
+# Function to process each file and extract required data
+def process_file(file):
+    try:
+        df = pd.read_csv(file, low_memory=False)
+        return {
+            "station": df["STATION"][0],
+            "coords": (df["LATITUDE"][0], df["LONGITUDE"][0]),
+            "station_name": df["NAME"][0],
+            "elevation": df["ELEVATION"][0]
+        }
+    except Exception as e:
+        print(f"Error processing {file}: {e}")
+        return None
+
+# Initialize list to store results
+results = []
+
+# Parallel processing of files in chunks
+with ThreadPoolExecutor(max_workers=10) as executor:
+    future_to_file = {executor.submit(process_file, file): file for file in files}
+    for i, future in enumerate(as_completed(future_to_file), 1):
+        file = future_to_file[future]
+        print(f"Currently at file: {file}. At: {i} out of {len(files)}")
+        result = future.result()
+        if result:
+            results.append(result)
 
 # Change back to the main directory
-os.chdir("/home/stochastic1017/Documents/Flight-Delays-Cancellations/")
+os.chdir(main_dir)
 
-# Create initial DataFrame
-result = pd.DataFrame({
-    "coords": coords,
-    "station_name": station_name,
-    "elevation": elevation
-})
+# Create DataFrame from results
+result_df = pd.DataFrame(results)
 
 # Filter and parse coordinates
 coordinates = []
 valid_indices = []
-for idx, item in enumerate(result["coords"]):
+for idx, item in enumerate(result_df["coords"]):
     coord = parse_coord(str(item))  # Ensure item is a string for parsing
     if coord is not None:
         coordinates.append(coord)
         valid_indices.append(idx)
 
 # Filter result to keep only rows with valid coordinates
-df_valid = result.iloc[valid_indices].reset_index(drop=True)
+df_valid = result_df.iloc[valid_indices].reset_index(drop=True)
 
 # Perform reverse geocoding on the valid coordinates
 reverse_geocode = rg.search(coordinates)
@@ -68,6 +89,7 @@ countries = [i["cc"] for i in reverse_geocode]
 
 # Create the final DataFrame with geocoded information
 result_df = pd.DataFrame({
+    "station": df_valid["station"].values,
     "station_name": df_valid["station_name"].values,
     "coords": df_valid["coords"].values,
     "elevation": df_valid["elevation"].values,
@@ -78,6 +100,9 @@ result_df = pd.DataFrame({
     "admin2": admin2,
     "country": countries
 })
+
+# Filtering to only US data
+result_df = result_df[result_df["country"] == "US"]
 
 # Mapping of state names to two-letter codes
 state_code_map = {
@@ -98,5 +123,5 @@ result_df['state'] = result_df['admin1'].map(state_code_map)
 
 # Save result to CSV
 print("Saving result.")
-result_df.to_csv("ncei-lcd-list.csv", index=False)
+result_df.to_csv(f"ncei-lcd-list-{year}.csv", index=False)
 print("Completed metadata extraction.")
