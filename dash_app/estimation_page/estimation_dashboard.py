@@ -20,26 +20,15 @@ months = [
 # Available metrics for the time series
 metrics = [
     # Hourly measurements
-    {'label': 'Hourly Altimeter Setting', 'value': 'HourlyAltimeterSetting'},
-    {'label': 'Hourly Dew Point Temperature', 'value': 'HourlyDewPointTemperature'},
-    {'label': 'Hourly Dry Bulb Temperature', 'value': 'HourlyDryBulbTemperature'},
-    {'label': 'Hourly Precipitation', 'value': 'HourlyPrecipitation'},
-    {'label': 'Hourly Present Weather Type', 'value': 'HourlyPresentWeatherType'},
-    {'label': 'Hourly Relative Humidity', 'value': 'HourlyRelativeHumidity'},
-    {'label': 'Hourly Sea Level Pressure', 'value': 'HourlySeaLevelPressure'},
-    {'label': 'Hourly Station Pressure', 'value': 'HourlyStationPressure'},
-    {'label': 'Hourly Visibility', 'value': 'HourlyVisibility'},
-    {'label': 'Hourly Wind Speed', 'value': 'HourlyWindSpeed'},
-    # Daily measurements
-    {'label': 'Daily Average Temperature', 'value': 'DailyAverageDryBulbTemperature'},
-    {'label': 'Daily Maximum Temperature', 'value': 'DailyMaximumDryBulbTemperature'},
-    {'label': 'Daily Minimum Temperature', 'value': 'DailyMinimumDryBulbTemperature'},
-    {'label': 'Daily Precipitation', 'value': 'DailyPrecipitation'},
-    {'label': 'Daily Snow Depth', 'value': 'DailySnowDepth'},
-    # Monthly measurements
-    {'label': 'Monthly Average RH', 'value': 'MonthlyAverageRH'},
-    {'label': 'Monthly Mean Temperature', 'value': 'MonthlyMeanTemperature'},
-    {'label': 'Monthly Total Precipitation', 'value': 'MonthlyTotalLiquidPrecipitation'},
+    {'label': 'Hourly Dry Bulb Temperature', 'value': 'HourlyDryBulbTemperature'},      # 17401 files
+    {'label': 'Hourly Wind Speed', 'value': 'HourlyWindSpeed'},                         # 16762 files
+    {'label': 'Hourly Wind Direction', 'value': 'HourlyWindDirection'},                 # 16639 files
+    {'label': 'Hourly Dew Point Temperature', 'value': 'HourlyDewPointTemperature'},    # 14540 files
+    {'label': 'Hourly Relative Humidity', 'value': 'HourlyRelativeHumidity'},           # 14531 files
+    {'label': 'Hourly Visibility', 'value': 'HourlyVisibility'},                        # 14417 files
+    {'label': 'Hourly Station Pressure', 'value': 'HourlyStationPressure'},             # 10686 files
+    {'label': 'Hourly Wet Bulb Temperature', 'value': 'HourlyWetBulbTemperature'},      # 9625 files
+    {'label': 'Hourly Sky Conditions', 'value': 'HourlySkyConditions'},                 # 8519 files
 ]
 
 # Color scale
