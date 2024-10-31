@@ -7,34 +7,54 @@ from dash import dcc, html, callback, Output, Input
 mapbox_token = "pk.eyJ1Ijoic3RvY2hhc3RpYzEwMTciLCJhIjoiY20ydmJpMzhrMGIwdDJqb2NoZGt5emw0YiJ9.QJXmXS_gHKVxDV4mVkmIOw"
 px.set_mapbox_access_token(mapbox_token)
 
-# Load data (keeping your existing data loading code)
-df_station = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/ncei-lcd-list-us.csv")
-df_airport = pd.read_csv("https://raw.githubusercontent.com/Stochastic1017/Flight-Delays-Cancellations/refs/heads/main/stats/metadata/airports-list-us.csv")
+# Load metadata for stations and airports
+df_station = pd.read_csv("ncei-lcd-list-2024.csv")
+df_airport = pd.read_csv("airports-list-us.csv")
+years = [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+months = [
+    {'label': 'January', 'value': 'Jan'},
+    {'label': 'November', 'value': 'Nov'},
+    {'label': 'December', 'value': 'Dec'}
+]
 
-# List of states for dropdown
-states = sorted(df_airport['AIRPORT_STATE_CODE'].dropna().unique())
+# Available metrics for the time series
+metrics = [
+    # Hourly measurements
+    {'label': 'Hourly Altimeter Setting', 'value': 'HourlyAltimeterSetting'},
+    {'label': 'Hourly Dew Point Temperature', 'value': 'HourlyDewPointTemperature'},
+    {'label': 'Hourly Dry Bulb Temperature', 'value': 'HourlyDryBulbTemperature'},
+    {'label': 'Hourly Precipitation', 'value': 'HourlyPrecipitation'},
+    {'label': 'Hourly Present Weather Type', 'value': 'HourlyPresentWeatherType'},
+    {'label': 'Hourly Relative Humidity', 'value': 'HourlyRelativeHumidity'},
+    {'label': 'Hourly Sea Level Pressure', 'value': 'HourlySeaLevelPressure'},
+    {'label': 'Hourly Station Pressure', 'value': 'HourlyStationPressure'},
+    {'label': 'Hourly Visibility', 'value': 'HourlyVisibility'},
+    {'label': 'Hourly Wind Speed', 'value': 'HourlyWindSpeed'},
+    # Daily measurements
+    {'label': 'Daily Average Temperature', 'value': 'DailyAverageDryBulbTemperature'},
+    {'label': 'Daily Maximum Temperature', 'value': 'DailyMaximumDryBulbTemperature'},
+    {'label': 'Daily Minimum Temperature', 'value': 'DailyMinimumDryBulbTemperature'},
+    {'label': 'Daily Precipitation', 'value': 'DailyPrecipitation'},
+    {'label': 'Daily Snow Depth', 'value': 'DailySnowDepth'},
+    # Monthly measurements
+    {'label': 'Monthly Average RH', 'value': 'MonthlyAverageRH'},
+    {'label': 'Monthly Mean Temperature', 'value': 'MonthlyMeanTemperature'},
+    {'label': 'Monthly Total Precipitation', 'value': 'MonthlyTotalLiquidPrecipitation'},
+]
 
-# Color scales
+# Color scale
 weather_color_scale = px.colors.cyclical.IceFire
 
-# Layout with improved styling and inline CSS
+# Layout
 estimation_layout = html.Div([
-    html.H1("Enhanced US Map: Weather Stations & Airports", 
-            style={
-                'text-align': 'center', 
-                'color': '#333',
-                'margin': '20px 0',
-                'font-family': 'Arial, sans-serif'
-            }),
+    html.H1("Enhanced US Map: Weather Stations & Airports", style={
+        'text-align': 'center', 'color': '#333', 'margin': '20px 0', 'font-family': 'Arial, sans-serif'
+    }),
     
     # Control panel
     html.Div([
         html.Div([
-            html.Label('Select Data Type', style={
-                'font-weight': 'bold',
-                'margin-bottom': '8px',
-                'display': 'block'
-            }),
+            html.Label('Select Data Type', style={'font-weight': 'bold', 'margin-bottom': '8px', 'display': 'block'}),
             dcc.Dropdown(
                 id='data-selector',
                 options=[
@@ -47,11 +67,7 @@ estimation_layout = html.Div([
         ], style={'margin-bottom': '25px'}),
         
         html.Div([
-            html.Label('Map Style', style={
-                'font-weight': 'bold',
-                'margin-bottom': '8px',
-                'display': 'block'
-            }),
+            html.Label('Map Style', style={'font-weight': 'bold', 'margin-bottom': '8px', 'display': 'block'}),
             dcc.Dropdown(
                 id='mapbox-style-selector',
                 options=[
@@ -65,84 +81,99 @@ estimation_layout = html.Div([
                 className='custom-dropdown'
             )
         ], style={'margin-bottom': '25px'}),
-        
+
         html.Div([
-            html.Label('Marker Size', style={
-                'font-weight': 'bold',
-                'margin-bottom': '8px',
-                'display': 'block'
-            }),
-            dcc.Slider(
-                id='marker-size',
-                min=5,
-                max=25,
-                step=1,
-                value=15,
-                marks={i: str(i) for i in range(5, 26, 5)},
-                className='custom-slider'
+            html.Label('Select Year', style={'font-weight': 'bold', 'margin-bottom': '8px', 'display': 'block'}),
+            dcc.Dropdown(
+                id='year-selector',
+                options=[{'label': str(year), 'value': year} for year in years],
+                value=2024,
+                className='custom-dropdown'
+            )
+        ], style={'margin-bottom': '25px'}),
+
+        html.Div([
+            html.Label('Select Month', style={'font-weight': 'bold', 'margin-bottom': '8px', 'display': 'block'}),
+            dcc.Dropdown(
+                id='month-selector',
+                options=months,
+                value='Jan',
+                className='custom-dropdown'
+            )
+        ], style={'margin-bottom': '25px'}),
+
+        html.Div([
+            html.Label('Select Metric', style={'font-weight': 'bold', 'margin-bottom': '8px', 'display': 'block'}),
+            dcc.Dropdown(
+                id='metric-selector',
+                options=metrics,
+                value='HourlyDewPointTemperature',
+                className='custom-dropdown',
+                style={'max-width': '100%'}
             )
         ], style={'margin-bottom': '25px'}),
         
-        html.Div([
-            html.Label('Marker Opacity', style={
-                'font-weight': 'bold',
-                'margin-bottom': '8px',
-                'display': 'block'
-            }),
-            dcc.Slider(
-                id='marker-opacity',
-                min=0.1,
-                max=1.0,
-                step=0.1,
-                value=0.7,
-                marks={i/10: str(i/10) for i in range(1, 11)},
-                className='custom-slider'
-            )
-        ], style={'margin-bottom': '25px'}),
     ], style={
-        'width': '320px',
-        'float': 'left',
-        'padding': '30px',
-        'background': '#f8f9fa',
-        'border-radius': '10px',
-        'box-shadow': '0 2px 4px rgba(0,0,0,0.1)',
-        'margin': '20px',
+        'width': '320px', 'float': 'left', 'padding': '30px', 'background': '#f8f9fa', 
+        'border-radius': '10px', 'box-shadow': '0 2px 4px rgba(0,0,0,0.1)', 'margin': '20px',
         'font-family': 'Arial, sans-serif'
     }),
     
     # Map display
     html.Div([
-        dcc.Graph(
-            id="enhanced-map",
-            config={"scrollZoom": True},
-            style={'width': 'calc(100% - 360px)', 'height': '80vh'}
-        )
+        dcc.Graph(id="enhanced-map", config={"scrollZoom": True}, style={'width': '100%', 'height': '80vh'})
     ], style={'margin-left': '360px', 'padding': '20px'}),
-    
+
+    # Time-series plot display with initial empty state
+    html.Div([
+        html.H2("Weather Data Time-Series", style={'text-align': 'center'}),
+        html.Div(id="timeseries-container", children=[
+            dcc.Graph(id="timeseries-plot", style={'width': '90%', 'margin': '0 auto'})
+        ], style={'display': 'none'})
+    ]),
 ])
 
 @callback(
     Output("enhanced-map", "figure"),
+    Output("timeseries-container", "style"),
+    Output("timeseries-plot", "figure"),
     [Input("data-selector", "value"),
      Input("mapbox-style-selector", "value"),
-     Input("marker-size", "value"),
-     Input("marker-opacity", "value")]
+     Input("year-selector", "value"),
+     Input("month-selector", "value"),
+     Input("metric-selector", "value"),
+     Input("enhanced-map", "clickData")]
 )
-def update_enhanced_map(selected_data, mapbox_style, marker_size, marker_opacity):
+def update_maps(selected_data, mapbox_style, selected_year, selected_month, selected_metric, click_data):
+    # Create base map figure
+    fig = create_map_figure(selected_data, mapbox_style)
     
+    # Initialize time series visibility and figure
+    timeseries_style = {'display': 'none'}
+    timeseries_fig = px.line()  # Empty figure as default
+    
+    # Update time series if a station is clicked
+    if click_data and selected_data == 'stations':
+        try:
+            station_name = click_data['points'][0]['hovertext']
+            timeseries_fig = create_timeseries_plot(
+                station_name, 
+                selected_year, 
+                selected_month, 
+                selected_metric
+            )
+            timeseries_style = {'display': 'block'}
+        except Exception as e:
+            print(f"Error creating time series plot: {e}")
+            timeseries_style = {'display': 'none'}
+    
+    return fig, timeseries_style, timeseries_fig
+
+def create_map_figure(selected_data, mapbox_style):
     if selected_data == 'stations':
-        fig = create_enhanced_weather_map(
-            df_station,
-            marker_size=marker_size,
-            marker_opacity=marker_opacity
-        )
-        
+        fig = create_enhanced_weather_map(df_station)
     else:
-        fig = create_enhanced_airport_map(
-            df_airport,
-            marker_size=marker_size,
-            marker_opacity=marker_opacity
-        )
+        fig = create_enhanced_airport_map(df_airport)
     
     fig.update_layout(
         mapbox=dict(
@@ -157,43 +188,65 @@ def update_enhanced_map(selected_data, mapbox_style, marker_size, marker_opacity
     
     return fig
 
-def create_enhanced_weather_map(df, marker_size=15, marker_opacity=0.7):
+def create_enhanced_weather_map(df):
     return px.scatter_mapbox(
         df,
         lat="latitude",
         lon="longitude",
-        hover_name="station_name",
-        hover_data={
-            "station_name": True,
-            "elevation": True,
-            "admin1": True,
-            "admin2": True
-        },
+        hover_name="station",
+        hover_data={"station_name": True, "elevation": True, "admin1": True, "admin2": True},
         color="elevation",
         color_continuous_scale=weather_color_scale,
         range_color=[df['elevation'].min(), df['elevation'].max()],
-    ).update_traces(
-        marker=dict(
-            size=marker_size,
-            opacity=marker_opacity,
-        )
-    )
+    ).update_traces(marker=dict(size=10, opacity=0.7))
 
-def create_enhanced_airport_map(df, marker_size=15, marker_opacity=0.7):
+def create_enhanced_airport_map(df):
     return px.scatter_mapbox(
         df,
         lat="LATITUDE",
         lon="LONGITUDE",
         hover_name="AIRPORT",
-        hover_data={
-            "DISPLAY_AIRPORT_NAME": True,
-            "City": True,
-            "AIRPORT_STATE_NAME": True
-        },
+        hover_data={"DISPLAY_AIRPORT_NAME": True, "City": True, "AIRPORT_STATE_NAME": True},
         color="AIRPORT_STATE_CODE",
-    ).update_traces(
-        marker=dict(
-            size=marker_size,
-            opacity=marker_opacity,
+    ).update_traces(marker=dict(size=10, opacity=0.7))
+
+def create_timeseries_plot(station, year, month, metric):
+    try:
+        # Define the GCS file path for the selected year and station
+        file_path = f"gs://airport-weather-data/ncei-lcd/{year}/{station}.csv"
+        
+        # Load CSV directly from GCS
+        df = pd.read_csv(file_path, storage_options={"token": "flights-weather-project-f94d306bee1f.json"})
+        
+        # Convert DATE to datetime
+        df['DATE'] = pd.to_datetime(df['DATE'])
+        
+        # Filter for selected month
+        df = df[df['DATE'].dt.strftime('%b') == month]
+        
+        # Get the metric's label for the plot title
+        metric_label = next((item['label'] for item in metrics if item['value'] == metric), metric)
+        
+        # Create the time series plot
+        fig = px.line(
+            df, 
+            x=df['DATE'].dt.to_pydatetime(),
+            y=metric,
+            title=f"{metric_label} - {station} ({month} {year})",
+            labels={metric: metric_label}
         )
-    )
+        
+        # Improve the layout
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title=metric_label,
+            hovermode='x unified',
+            template='plotly_white'
+        )
+        
+        return fig
+    except Exception as e:
+        print(f"Error in create_timeseries_plot: {e}")
+        # Return an empty figure with an error message
+        return px.line(title=f"Error loading data for station {station}")
+    
