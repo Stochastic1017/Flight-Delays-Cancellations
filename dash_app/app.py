@@ -1,11 +1,12 @@
 
+
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
-from estimation_page.estimation_dashboard import estimation_layout
+from weather_dashboard.dashboard import weather_dashboard_layout
 
 # Initialize the app
 app = Dash(__name__, suppress_callback_exceptions=True, external_scripts=['https://cdn.plot.ly/plotly-latest.min.js'])
@@ -20,10 +21,10 @@ app.layout = html.Div([
 # Callback for page content based on URL
 @app.callback(Output('page-content', 'children'), Input('url', 'pathname'))
 def display_page(pathname):
-    if pathname == '/estimation_page.estimation_dashboard':
-        return estimation_layout
+    if pathname == '/weather_dashboard.dashboard':
+        return weather_dashboard_layout
     else:
-        return estimation_layout
+        return weather_dashboard_layout
     
 # Run the app
 if __name__ == '__main__':
