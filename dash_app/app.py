@@ -6,7 +6,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from dash import Dash, html, dcc
 from dash.dependencies import Input, Output
-from weather_dashboard.dashboard import weather_dashboard_layout
+from dashboard.main_dashboard import main_dashboard_layout
 
 # Initialize the app
 app = Dash(__name__, suppress_callback_exceptions=True, external_scripts=['https://cdn.plot.ly/plotly-latest.min.js'])
@@ -21,10 +21,10 @@ app.layout = html.Div([
 # Callback for page content based on URL
 @app.callback(Output('page-content', 'children'), Input('url', 'pathname'))
 def display_page(pathname):
-    if pathname == '/weather_dashboard.dashboard':
-        return weather_dashboard_layout
+    if pathname == '/dashboard.main_dashboard':
+        return main_dashboard_layout
     else:
-        return weather_dashboard_layout
+        return main_dashboard_layout
     
 # Run the app
 if __name__ == '__main__':

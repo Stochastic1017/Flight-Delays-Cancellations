@@ -54,135 +54,136 @@ weather_color_scales = [
     {'label': 'Electric', 'value': 'Electric'}
 ]
 
-weather_dashboard_layout = html.Div([
-    
-    # Compact, Sticky Control Panel on the Side
-    html.Div([
-        html.H3("Control Panel", className="section-title"),
-        
-        # Visualization Settings Section
-        html.Div([
-            html.Label('Visualization Settings', className="label"),
-            dcc.Dropdown(
-                id='mapbox-style-selector',
-                options=map_options,
-                value='streets-v11',
-                className="dropdown",
-                clearable=False
-            ),
-            html.Label('Color Scale', className="label"),
-            dcc.Dropdown(
-                id='weather-color-scale-selector',
-                options=weather_color_scales,
-                value='Viridis',
-                className="dropdown",
-                clearable=False
-            )
-        ], className="control-panel-section"),
+from dash import dcc, html
 
-        # Marker Size and Opacity Section
-        html.Div([
-            html.Label('Marker Size', className="label"),
-            dcc.Slider(
-                id='marker-size',
-                min=5,
-                max=25,
-                step=1,
-                value=10,
-                marks={i: str(i) for i in range(5, 26, 5)},
-                className='custom-slider'
-            ),
-            html.Label('Marker Opacity', className="label"),
-            dcc.Slider(
-                id='marker-opacity',
-                min=0.1,
-                max=1.0,
-                step=0.1,
-                value=0.7,
-                marks={i/10: str(i/10) for i in range(1, 11)},
-                className='custom-slider'
-            ),
-        ], className="control-panel-section"),
-
-        # Location Filters Section
-        html.Div([
-            html.Label('Location Filters', className="label"),
-            dcc.Dropdown(
-                id='state-selector',
-                options=states,
-                placeholder="Select State",
-                className="dropdown",
-                clearable=True,
-                multi=False
-            ),
-            dcc.Dropdown(
-                id='city-selector',
-                placeholder="Select City",
-                className="dropdown",
-                clearable=True,
-                multi=False
-            ),
-        ], className="control-panel-section"),
-      
-    ], className="control-panel"),
-
-    # Main Content Area
-    html.Div([
-
-        # Map Container
-        html.Div([
-            dcc.Graph(
-                id="enhanced-map",
-                config={"scrollZoom": True},
-                style={'height': '50vh'}
-            )
-        ], className="map-container"),
-
-        # Station Info Table and Update Button
-        html.Div([
-            html.Div(id="station-info-table", className="station-info-table"),
-        ], className="station-info-section"),
-
-        # Add this new section near the station info table
-        html.Div([
-            # Station Info Table
-            html.Div(id="station-info-table", className="station-info-table"),
-
-            # Time Series Settings Section
+# Main dashboard layout with improved structure and spacing
+main_dashboard_layout = html.Div([
+    dcc.Tabs([
+        dcc.Tab(label="Explore Weather Data", children=[
+            # Main container for the weather dashboard
             html.Div([
-                html.Label('Time Series Settings', className="label"),
-                dcc.Dropdown(
-                    id='year-selector',
-                    options=[{'label': str(year), 'value': year} for year in years],
-                    value=2018,
-                    placeholder="Select Year",
-                    className="dropdown time-series-settings-dropdown",
-                    searchable=True,
-                    clearable=False
-                ),
-                dcc.Dropdown(
-                    id='metric-selector',
-                    options=metrics,
-                    value='HourlyDryBulbTemperature',
-                    placeholder="Select Metric",
-                    className="dropdown time-series-settings-dropdown",
-                    searchable=True,
-                    clearable=False
-                ),
-                html.Button("Update Plot", id="update-plot-button", className="update-plot-button"),
-            ], className="time-series-settings-section"),
-        ], className="station-info-and-settings-container"),
+                # Control Panel
+                html.Div([
+                    html.H3("Control Panel", className="section-title"),
+                    
+                    # Visualization Settings Section
+                    html.Div([
+                        html.Label('Visualization Settings', className="label"),
+                        dcc.Dropdown(
+                            id='mapbox-style-selector',
+                            options=map_options,
+                            value='streets-v11',
+                            className="dropdown",
+                            clearable=False
+                        ),
+                        html.Label('Color Scale', className="label"),
+                        dcc.Dropdown(
+                            id='weather-color-scale-selector',
+                            options=weather_color_scales,
+                            value='Viridis',
+                            className="dropdown",
+                            clearable=False
+                        )
+                    ], className="control-panel-section"),
 
-        # Time-Series Plot
-        html.Div([
-            dcc.Graph(
-                id="timeseries-plot",
-                style={'height': '50vh'}
-            )
-        ], className="timeseries-container"),
+                    # Marker Size and Opacity Section
+                    html.Div([
+                        html.Label('Marker Size', className="label"),
+                        dcc.Slider(
+                            id='marker-size',
+                            min=5,
+                            max=25,
+                            step=1,
+                            value=10,
+                            marks={i: str(i) for i in range(5, 26, 5)},
+                            className='custom-slider'
+                        ),
+                        html.Label('Marker Opacity', className="label"),
+                        dcc.Slider(
+                            id='marker-opacity',
+                            min=0.1,
+                            max=1.0,
+                            step=0.1,
+                            value=0.7,
+                            marks={i/10: str(i/10) for i in range(1, 11)},
+                            className='custom-slider'
+                        )
+                    ], className="control-panel-section"),
 
-    ], className="main-content")
-], className="dashboard-container")
+                    # Location Filters Section
+                    html.Div([
+                        html.Label('Location Filters', className="label"),
+                        dcc.Dropdown(
+                            id='state-selector',
+                            options=states,
+                            placeholder="Select State",
+                            className="dropdown",
+                            clearable=True,
+                            multi=False
+                        ),
+                        dcc.Dropdown(
+                            id='city-selector',
+                            placeholder="Select City",
+                            className="dropdown",
+                            clearable=True,
+                            multi=False
+                        )
+                    ], className="control-panel-section")
+                ], className="control-panel", style={'width': '15%', 'float': 'left', 'padding': '10px'}),
+
+                # Main content area
+                html.Div([
+                    # Map Container
+                    html.Div([
+                        dcc.Graph(
+                            id="enhanced-map",
+                            config={"scrollZoom": True},
+                            style={'height': '50vh'}
+                        )
+                    ], className="map-container", style={'margin-bottom': '20px'}),
+
+                    # Station Info and Time Series Settings Container
+                    html.Div([
+                        html.Div(id="station-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
+                        
+                        # Time Series Settings Section
+                        html.Div([
+                            html.Label('Time Series Settings', className="label"),
+                            dcc.Dropdown(
+                                id='year-selector',
+                                options=[{'label': str(year), 'value': year} for year in years],
+                                value=2018,
+                                placeholder="Select Year",
+                                className="dropdown time-series-settings-dropdown",
+                                searchable=True,
+                                clearable=False
+                            ),
+                            dcc.Dropdown(
+                                id='metric-selector',
+                                options=metrics,
+                                value='HourlyDryBulbTemperature',
+                                placeholder="Select Metric",
+                                className="dropdown time-series-settings-dropdown",
+                                searchable=True,
+                                clearable=False
+                            ),
+                            html.Button("Update Plot", id="update-plot-button", className="update-plot-button", style={'margin-top': '10px'})
+                        ], className="time-series-settings-section", style={'margin-top': '20px'})
+                    ], className="station-info-and-settings-container", style={'width': '75%', 'float': 'right', 'padding': '10px'}),
+
+                    # Time-Series Plot
+                    html.Div([
+                        dcc.Graph(
+                            id="timeseries-plot",
+                            style={'height': '110vh'}
+                        )
+                    ], className="timeseries-container", style={'margin-top': '20px', 'clear': 'both'})
+                ], className="main-content", style={'width': '75%', 'float': 'right', 'padding': '10px'})
+            ], className="dashboard-container", style={'display': 'flex', 'flex-wrap': 'wrap'})
+        ])
+    ])
+], style={'max-width': '3000px', 'margin': '0 auto'})
+
 
 @callback(
     [Output("city-selector", "options"),
