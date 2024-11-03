@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from dash import callback, Output, Input, State, html
 import plotly.express as px
-from .weather_helpers import create_weather_map_figure, create_timeseries_plot
+from .weather_helpers import (create_weather_map_figure, create_timeseries_plot)
 
 # Mapbox token (hidden)
 mapbox_token = "pk.eyJ1Ijoic3RvY2hhc3RpYzEwMTciLCJhIjoiY20ydmJpMzhrMGIwdDJqb2NoZGt5emw0YiJ9.QJXmXS_gHKVxDV4mVkmIOw"
@@ -57,30 +57,25 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, weath
     fig = create_weather_map_figure(mapbox_style, marker_size, marker_opacity, weather_color_scale, filtered_df)
 
     # Get station information with error handling
-    station_info = {'station': pd.NA, 
-                    'station_name': pd.NA, 
-                    'coords': pd.NA, 
-                    'elevation': pd.NA, 
-                    'latitude': pd.NA, 
-                    'longitude': pd.NA, 
-                    'names': pd.NA, 
-                    'admin1': pd.NA, 
-                    'admin2': pd.NA, 
-                    'country': pd.NA, 
-                    'state': pd.NA}
+    station_info = None
     if click_data:
         station_name = click_data['points'][0]['hovertext']
         station_df = filtered_df[filtered_df['station'] == station_name]
         station_info = station_df.iloc[0].to_dict() if not station_df.empty else None
 
-    station_info_table = html.Table([
-        html.Tr([html.Th("Station Info")]),
-        html.Tr([html.Td("Name:"), html.Td(station_info["station_name"])]),
-        html.Tr([html.Td("Coordinates:"), html.Td(station_info["coords"])]),
-        html.Tr([html.Td("Location:"), html.Td(station_info["names"])]),
-        html.Tr([html.Td("Admin 1:"), html.Td(station_info["admin1"])]),
-        html.Tr([html.Td("Admin 2:"), html.Td(station_info["admin2"])])
-    ])
+    if station_info:
+        station_info_table = html.Table([
+            html.Tr([html.Th("Station Info")]),
+            html.Tr([html.Td("Name:"), html.Td(station_info["station_name"])]),
+            html.Tr([html.Td("Coordinates:"), html.Td(station_info["coords"])]),
+            html.Tr([html.Td("Location:"), html.Td(station_info["names"])]),
+            html.Tr([html.Td("Admin 1:"), html.Td(station_info["admin1"])]),
+            html.Tr([html.Td("Admin 2:"), html.Td(station_info["admin2"])])
+        ])
+    else:
+        station_info_table = html.Table([
+            html.Tr([html.Th("No Station Selected")])
+        ])
 
     return city_options, fig, station_info_table
 

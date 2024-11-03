@@ -170,4 +170,3 @@ def create_timeseries_plot(station, year, metric, title_info):
             template="plotly_dark"
         )
         return fig
-

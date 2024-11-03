@@ -1,14 +1,16 @@
 
-
 import pandas as pd
 from dash import dcc, html
 
 # Load data
-df_airport = pd.read_csv("filtered-airports-list-us.csv")
+df_airport = pd.read_csv("airports-list-us.csv")
 
 # Unique states and cities for dropdown filtering
 states = [{'label': state, 'value': state} 
           for state in df_airport['State'].unique()]
+
+years = [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+months = ["January", "November", "December"]
 
 map_options = [
     {'label': 'Streets', 'value': 'streets-v11'},
@@ -82,23 +84,49 @@ airport_dashboard_layout = html.Div([
                     ], className="control-panel-section")
                 ], className="control-panel", style={'width': '15%', 'float': 'left', 'padding': '10px'}),
 
-                html.Div([
                     html.Div([
-                        dcc.Graph(
-                            id="airport-enhanced-map",
-                            config={"scrollZoom": True},
-                            style={'height': '50vh'}
-                        )
-                    ], className="map-container", style={'margin-bottom': '20px'}),
+                        html.Div([
+                            dcc.Graph(
+                                id="airport-enhanced-map",
+                                config={"scrollZoom": True},
+                                style={'height': '50vh'}
+                            )
+                        ], className="map-container", style={'margin-bottom': '20px'}),
 
-                    html.Div([
-                        html.Div(id="airport-info-table", className="airport-info-table", style={'margin-bottom': '20px'}),
-                    ], className="airport-info-and-settings-container", style={'width': '75%', 'float': 'right', 'padding': '10px'}),
+                        html.Div([
+                            html.Div(id="airport-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
+                        ], className="airport-info-and-settings-container", style={'width': '75%', 'float': 'right', 'padding': '10px'}),
 
-                    html.Div([
-                        dcc.Graph(
-                            id="airport-timeseries-plot",
-                            style={'height': '110vh'}
+                        html.Div([
+                            html.Div(id="airport-station-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
+                            html.Div([
+                                html.Label('Data Exploration Settings', className="label"),
+                                dcc.Dropdown(
+                                    id='airport-year-selector',
+                                    options=[{'label': str(year), 'value': year} for year in years],
+                                    value=years[0],
+                                    placeholder="Select Year",
+                                    className="dropdown time-series-settings-dropdown",
+                                    searchable=True,
+                                    clearable=False
+                                ),
+                                dcc.Dropdown(
+                                    id='airport-month-selector',
+                                    options=[{'label': str(month), 'value': month} for month in months],
+                                    value=months[0],
+                                    placeholder="Select Month",
+                                    className="dropdown time-series-settings-dropdown",
+                                    searchable=True,
+                                    clearable=False
+                                ),
+                                html.Button("Update Plot", id="airport-update-plot-button", className="update-plot-button", style={'margin-top': '10px'})
+                            ], className="time-series-settings-section", style={'margin-top': '20px'})
+                        ], className="station-info-and-settings-container", style={'width': '75%', 'float': 'right', 'padding': '10px'}),
+
+                        html.Div([
+                            dcc.Graph(
+                                id="airport-timeseries-plot",
+                                style={'height': '110vh'}
                         )
                     ], className="timeseries-container", style={'margin-top': '20px', 'clear': 'both'})
                 ], className="main-content", style={'width': '75%', 'float': 'right', 'padding': '10px'})

@@ -126,7 +126,7 @@ weather_dashboard_layout = html.Div([
                     html.Div([
                         html.Div(id="weather-station-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
                         html.Div([
-                            html.Label('Time Series Settings', className="label"),
+                            html.Label('Data Exploration Settings', className="label"),
                             dcc.Dropdown(
                                 id='weather-year-selector',
                                 options=[{'label': str(year), 'value': year} for year in years],
