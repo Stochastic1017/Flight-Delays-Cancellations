@@ -17,11 +17,11 @@ columns_to_drop = [
     "Tail_Number",
     
     # Redundant Origin Info columns
-    "Origin", "OriginAirportSeqID", "OriginCityMarketID",
+    "Origin", "OriginAirportSeqID", "OriginCityMarketID", "OriginStateFips",
     "OriginState", "OriginWac", "OriginStateName",
     
     # Redundant Destination Info columns
-    "Dest", "DestAirportID", "DestAirportSeqID", "DestCityMarketID",
+    "Dest", "DestAirportSeqID", "DestCityMarketID", "DestStateFips",
     "DestState", "DestWac", "DestStateName",
     
     # Redundant Departure Time Info columns
@@ -43,7 +43,7 @@ columns_to_drop = [
 ]
 
 # Define the base directory containing the year_month CSV files
-base_dir = 'airport'
+base_dir = 'airport-data'
 output_dir = 'airport_merged'
 
 # Ensure the output directory exists
@@ -65,6 +65,7 @@ for root, _, files in os.walk(base_dir):
             
             # Drop the specified columns if they exist in the DataFrame
             df = df.drop(columns=[col for col in columns_to_drop if col in df.columns], errors='ignore')
+            df = df.iloc[:, :-48]
             
             # Iterate through unique OriginAirportID values in the current DataFrame
             for origin_id in df['OriginAirportID'].unique():
