@@ -6,7 +6,7 @@ import numpy as np
 from scipy import stats
 from plotly.subplots import make_subplots
 
-def create_map_figure(mapbox_style, marker_size, marker_opacity, weather_color_scale, filtered_df):
+def create_weather_map_figure(mapbox_style, marker_size, marker_opacity, weather_color_scale, filtered_df):
     fig = px.scatter_mapbox(
         filtered_df,
         lat="latitude",
@@ -43,9 +43,9 @@ def create_timeseries_plot(station, year, metric, title_info):
         fig = make_subplots(
             rows=3, cols=3,
             shared_xaxes=False,
-            column_widths=[0.7, 0.3, 0.3],
-            vertical_spacing=0.15,
-            horizontal_spacing=0.05,
+            column_widths=[0.75, 0.15, 0.15],
+            vertical_spacing=0.16,
+            horizontal_spacing=0.02,
             subplot_titles=[
                 "January Time Series", "January Distribution", "January Stats",
                 "November Time Series", "November Distribution", "November Stats",
@@ -56,7 +56,7 @@ def create_timeseries_plot(station, year, metric, title_info):
                    [{"type": "scatter"}, {"type": "xy"}, {"type": "table"}]]
         )
         
-        colors = {1: '#1f77b4', 11: '#2ca02c', 12: '#d62728'}
+        colors = {1: '#00B4D8', 11: '#4C9A2A', 12: '#EE6C4D'}  # Blue, Green, Red
         
         for i, month in enumerate(months_to_plot, 1):
             month_df = filtered_df[filtered_df["DATE"].dt.month == month].copy()
@@ -121,16 +121,18 @@ def create_timeseries_plot(station, year, metric, title_info):
                     fig.add_trace(
                         go.Table(
                             header=dict(
-                                values=["Statistic", "Value"],
-                                fill_color='black',
+                                values=["<b>Statistic<b>", "<b>Value<B>"],
+                                fill_color=colors[month],  # Header color matches line color
                                 align='center',
-                                font=dict(color='white', size=12),
+                                font=dict(color='white', size=11),
+                                line_color=colors[month],
                             ),
                             cells=dict(
                                 values=[list(x) for x in zip(*summary_table_data)],
-                                fill_color='white',
+                                fill_color=colors[month],
                                 align='center',
-                                font=dict(size=12),
+                                font=dict(color="white", size=10),  # Cell font color matches line color
+                                line_color=colors[month],
                             )
                         ),
                         row=i, col=3
@@ -145,7 +147,7 @@ def create_timeseries_plot(station, year, metric, title_info):
             ),
             height=1200,
             width=1600,
-            template="plotly_white",
+            template="plotly_dark",
             showlegend=False,
             hovermode='closest',
             margin=dict(t=100, b=50, l=50, r=50)
@@ -165,6 +167,7 @@ def create_timeseries_plot(station, year, metric, title_info):
         )
         fig.update_layout(
             title=f"Error - {station} ({year})",
-            template="plotly_white"
+            template="plotly_dark"
         )
         return fig
+

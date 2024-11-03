@@ -1,230 +1,324 @@
 
-/* Variables for consistent theming */
+/* Variables for consistent dark mode theming */
 :root {
-    --primary-color: #2563eb;
-    --primary-hover: #1d4ed8;
-    --primary-active: #1e40af;
-    --background-color: #f8fafc;
-    --panel-background: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border-radius: 12px;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --transition: all 0.3s ease;
-  }
-  
-  /* Reset and base styles */
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
-  body {
-    background-color: var(--background-color);
-    color: var(--text-primary);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    line-height: 1.5;
-  }
-  
-  /* Main dashboard container */
+  --primary-color: #1e3a8a; /* Dark blue */
+  --primary-hover: #1d4ed8; /* Brighter blue */
+  --primary-active: #2563eb; /* Even brighter blue */
+  --background-color: #0f172a; /* Dark background */
+  --panel-background: #1e293b; /* Panel background */
+  --text-primary: #cbd5e1; /* Light text color */
+  --text-secondary: #94a3b8; /* Secondary light text color */
+  --border-radius: 12px;
+  --shadow-sm: 0 1px 3px rgba(255, 255, 255, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(255, 255, 255, 0.1), 0 2px 4px -1px rgba(255, 255, 255, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(255, 255, 255, 0.1), 0 4px 6px -2px rgba(255, 255, 255, 0.05);
+  --transition: all 0.3s ease;
+}
+
+/* Gradient animation for the title */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Hover animation for h1 */
+h1:hover {
+  transform: scale(1.05);
+  transition: var(--transition);
+}
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+}
+
+/* Main dashboard container */
+.dashboard-container {
+  display: flex;
+  gap: 24px;
+  padding: 24px;
+  min-height: 100vh;
+  background-color: var(--background-color);
+}
+
+/* Header Styling */
+.page-header {
+  text-align: center;
+  color: var(--text-primary);
+  font-size: 2rem;
+  font-weight: 800;
+  padding: 24px 0;
+  background: linear-gradient(to right, var(--primary-color), var(--primary-hover));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 24px;
+}
+
+/* Sidebar Control Panel */
+.control-panel {
+  width: 320px;
+  padding: 24px;
+  background: var(--panel-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 24px;
+  height: fit-content;
+  border: 1px solid #334155; /* Subtle border */
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Control panel sections */
+.control-panel-section {
+  padding: 16px 0;
+  border-bottom: 1px solid #334155;
+}
+
+.control-panel-section:last-child {
+  border-bottom: none;
+}
+
+.section-title {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+/* Main Content Area */
+.main-content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Map Container */
+.map-container {
+  background: var(--panel-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  padding: 16px;
+  border: 1px solid #334155;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Form Controls Styling */
+.label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  font-size: 0.875rem;
+}
+
+/* Custom dropdown styling */
+.dropdown {
+  background-color: white; /* White background */
+  border: 1px solid #ccc; /* Light gray border */
+  color: black; /* Black text */
+}
+
+.dropdown .Select-menu-outer {
+  background-color: white; /* Dropdown options background */
+  border: 1px solid #ccc;
+}
+
+.dropdown .Select-option {
+  color: black; /* Black text for options */
+  background-color: white; /* White background for options */
+}
+
+.dropdown .Select-option:hover {
+  background-color: #f0f0f0; /* Light gray on hover */
+  color: black; /* Keep text black */
+}
+
+.dropdown .Select-value {
+  color: black; /* Ensure selected value text is black */
+}
+
+.dropdown .Select-arrow {
+  border-color: black transparent transparent; /* Arrow color */
+}
+
+/* Custom slider styling */
+.custom-slider {
+  margin: 24px 0;
+}
+
+.custom-slider .rc-slider-track {
+  background-color: var(--primary-color);
+}
+
+.custom-slider .rc-slider-handle {
+  border-color: var(--primary-color);
+  background-color: #0f172a;
+}
+
+/* Station Info Table */
+.station-info-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 16px 0;
+  background-color: var(--panel-background);
+}
+
+.station-info-table th,
+.station-info-table td {
+  padding: 12px;
+  border: 1px solid #334155;
+  color: var(--text-primary);
+}
+
+.station-info-table th {
+  background-color: #1e293b;
+  font-weight: 600;
+  text-align: left;
+}
+
+.station-info-table tr:nth-child(even) {
+  background-color: #1e293b;
+}
+
+/* Update Plot Button */
+.update-plot-button {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  background-color: var(--primary-color);
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: var(--transition);
+  margin-top: 24px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.update-plot-button:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.update-plot-button:active {
+  background-color: var(--primary-active);
+  transform: translateY(1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.update-plot-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+/* Time Series Plot Container */
+.timeseries-container {
+  background: var(--panel-background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  padding: 16px;
+  border: 1px solid #334155;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
   .dashboard-container {
-    display: flex;
-    gap: 24px;
-    padding: 24px;
-    min-height: 100vh;
-    background-color: var(--background-color);
-  }
-  
-  /* Header Styling */
-  .page-header {
-    text-align: center;
-    color: var(--text-primary);
-    font-size: 2rem;
-    font-weight: 800;
-    padding: 24px 0;
-    background: linear-gradient(to right, var(--primary-color), var(--primary-hover));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    margin-bottom: 24px;
-  }
-  
-  /* Sidebar Control Panel */
-  .control-panel {
-    width: 320px;
-    padding: 24px;
-    background: var(--panel-background);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
-    position: sticky;
-    top: 24px;
-    height: fit-content;
-    border: 1px solid #e2e8f0;
-  }
-  
-  /* Control panel sections */
-  .control-panel-section {
-    padding: 16px 0;
-    border-bottom: 1px solid #e2e8f0;
-  }
-  
-  .control-panel-section:last-child {
-    border-bottom: none;
-  }
-  
-  .section-title {
-    color: var(--text-primary);
-    font-size: 1.25rem;
-    font-weight: 700;
-    margin-bottom: 16px;
-  }
-  
-  /* Main Content Area */
-  .main-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-  }
-  
-  /* Map Container */
-  .map-container {
-    background: var(--panel-background);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
-    padding: 16px;
-    border: 1px solid #e2e8f0;
-  }
-  
-  /* Form Controls Styling */
-  .label {
-    display: block;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-    font-size: 0.875rem;
-  }
-  
-  .dropdown {
-    margin-bottom: 16px;
-  }
-  
-  .dropdown:last-child {
-    margin-bottom: 0;
-  }
-  
-  /* Custom slider styling */
-  .custom-slider {
-    margin: 24px 0;
-  }
-  
-  .custom-slider .rc-slider-track {
-    background-color: var(--primary-color);
-  }
-  
-  .custom-slider .rc-slider-handle {
-    border-color: var(--primary-color);
-    background-color: white;
-  }
-  
-  /* Station Info Table */
-  .station-info-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin: 16px 0;
-  }
-  
-  .station-info-table th,
-  .station-info-table td {
-    padding: 12px;
-    border: 1px solid #e2e8f0;
-  }
-  
-  .station-info-table th {
-    background-color: #f8fafc;
-    font-weight: 600;
-    text-align: left;
-  }
-  
-  .station-info-table tr:nth-child(even) {
-    background-color: #f8fafc;
-  }
-  
-  /* Update Plot Button */
-  .update-plot-button {
-    width: 100%;
-    padding: 12px 24px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: white;
-    background-color: var(--primary-color);
-    border: none;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    transition: var(--transition);
-    margin-top: 24px;
-  }
-  
-  .update-plot-button:hover {
-    background-color: var(--primary-hover);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-  }
-  
-  .update-plot-button:active {
-    background-color: var(--primary-active);
-    transform: translateY(1px);
-    box-shadow: var(--shadow-sm);
-  }
-  
-  .update-plot-button:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
-  }
-  
-  /* Time Series Plot Container */
-  .timeseries-container {
-    background: var(--panel-background);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
-    padding: 16px;
-    border: 1px solid #e2e8f0;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 1024px) {
-    .dashboard-container {
       flex-direction: column;
-    }
-    
-    .control-panel {
+  }
+
+  .control-panel {
       width: 100%;
       position: static;
-    }
-    
-    .main-content {
-      width: 100%;
-    }
   }
-  
-  /* Animations */
-  @keyframes fadeIn {
-    from {
+
+  .main-content {
+      width: 100%;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
       opacity: 0;
       transform: translateY(10px);
-    }
-    to {
+  }
+  to {
       opacity: 1;
       transform: translateY(0);
-    }
   }
-  
-  .map-container,
-  .timeseries-container,
-  .control-panel {
-    animation: fadeIn 0.3s ease-out;
-  }
+}
+
+/* New hover effect for control panel sections */
+.control-panel-section:hover {
+  background-color: #1c2f41;
+  border-radius: var(--border-radius);
+  transition: var(--transition);
+}
+
+/* General Styling for Tabs */
+#tabs-dashboard .tab {
+  background-color: #1e293b; /* Dark blue background */
+  color: #cbd5e1; /* Light text color */
+  font-family: 'Arial', sans-serif;
+  font-size: 18px;
+  text-align: center;
+  padding: 15px;
+  border-radius: 10px 10px 0 0; /* Rounded corners for the top */
+  margin-right: 5px;
+  transition: background-color 0.3s, transform 0.3s, color 0.3s; /* Smooth transitions */
+}
+
+/* Hover Effect */
+#tabs-dashboard .tab:hover {
+  background-color: #2563eb; /* Brighter blue on hover */
+  color: #fff; /* Change text color on hover */
+  transform: translateY(-3px); /* Lift tab slightly */
+}
+
+/* Selected Tab Styling */
+#tabs-dashboard .tab--selected {
+  background-color: #1d4ed8; /* Highlighted active tab */
+  color: #fff; /* White text */
+  box-shadow: 0 5px 15px rgba(0, 83, 204, 0.5); /* Subtle blue glow effect */
+  font-weight: bold;
+}
+
+/* Add an animation for the tab content */
+.tab-content {
+  animation: fadeIn 1s ease-in-out;
+}
+
+/* Animation for tab hover border */
+#tabs-dashboard .tab:hover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+#tabs-dashboard .tab:hover::before {
+  opacity: 1;
+}

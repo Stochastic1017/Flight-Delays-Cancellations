@@ -8,7 +8,8 @@ df_station = pd.read_csv("ncei-lcd-list-us.csv")
 years = [2018, 2019, 2020, 2021, 2022, 2023, 2024]
 
 # Unique states and cities for dropdown filtering
-states = [{'label': state, 'value': state} for state in df_station['state'].unique()]
+states = [{'label': state, 'value': state} 
+          for state in df_station['state'].unique()]
 
 # Available metrics for the time series
 metrics = [
@@ -47,8 +48,6 @@ weather_color_scales = [
 
 # Define the layout for the weather dashboard
 weather_dashboard_layout = html.Div([
-    dcc.Tabs([
-        dcc.Tab(label="Explore Weather Data", children=[
             html.Div([
                 # Control panel and layout elements
                 html.Div([
@@ -56,9 +55,9 @@ weather_dashboard_layout = html.Div([
                     html.Div([
                         html.Label('Visualization Settings', className="label"),
                         dcc.Dropdown(
-                            id='mapbox-style-selector',
+                            id='weather-mapbox-style-selector',
                             options=map_options,
-                            value='streets-v11',
+                            value='navigation-night-v1',
                             className="dropdown",
                             clearable=False
                         ),
@@ -75,7 +74,7 @@ weather_dashboard_layout = html.Div([
                     html.Div([
                         html.Label('Marker Size', className="label"),
                         dcc.Slider(
-                            id='marker-size',
+                            id='weather-marker-size',
                             min=5,
                             max=25,
                             step=1,
@@ -85,11 +84,11 @@ weather_dashboard_layout = html.Div([
                         ),
                         html.Label('Marker Opacity', className="label"),
                         dcc.Slider(
-                            id='marker-opacity',
+                            id='weather-marker-opacity',
                             min=0.1,
                             max=1.0,
                             step=0.1,
-                            value=0.7,
+                            value=0.5,
                             marks={i/10: str(i/10) for i in range(1, 11)},
                             className='custom-slider'
                         )
@@ -98,7 +97,7 @@ weather_dashboard_layout = html.Div([
                     html.Div([
                         html.Label('Location Filters', className="label"),
                         dcc.Dropdown(
-                            id='state-selector',
+                            id='weather-state-selector',
                             options=states,
                             placeholder="Select State",
                             className="dropdown",
@@ -106,7 +105,7 @@ weather_dashboard_layout = html.Div([
                             multi=False
                         ),
                         dcc.Dropdown(
-                            id='city-selector',
+                            id='weather-city-selector',
                             placeholder="Select City",
                             className="dropdown",
                             clearable=True,
@@ -118,18 +117,18 @@ weather_dashboard_layout = html.Div([
                 html.Div([
                     html.Div([
                         dcc.Graph(
-                            id="enhanced-map",
+                            id="weather-enhanced-map",
                             config={"scrollZoom": True},
                             style={'height': '50vh'}
                         )
                     ], className="map-container", style={'margin-bottom': '20px'}),
 
                     html.Div([
-                        html.Div(id="station-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
+                        html.Div(id="weather-station-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
                         html.Div([
                             html.Label('Time Series Settings', className="label"),
                             dcc.Dropdown(
-                                id='year-selector',
+                                id='weather-year-selector',
                                 options=[{'label': str(year), 'value': year} for year in years],
                                 value=2018,
                                 placeholder="Select Year",
@@ -138,7 +137,7 @@ weather_dashboard_layout = html.Div([
                                 clearable=False
                             ),
                             dcc.Dropdown(
-                                id='metric-selector',
+                                id='weather-metric-selector',
                                 options=metrics,
                                 value='HourlyDryBulbTemperature',
                                 placeholder="Select Metric",
@@ -146,18 +145,16 @@ weather_dashboard_layout = html.Div([
                                 searchable=True,
                                 clearable=False
                             ),
-                            html.Button("Update Plot", id="update-plot-button", className="update-plot-button", style={'margin-top': '10px'})
+                            html.Button("Update Plot", id="weather-update-plot-button", className="update-plot-button", style={'margin-top': '10px'})
                         ], className="time-series-settings-section", style={'margin-top': '20px'})
                     ], className="station-info-and-settings-container", style={'width': '75%', 'float': 'right', 'padding': '10px'}),
 
                     html.Div([
                         dcc.Graph(
-                            id="timeseries-plot",
+                            id="weather-timeseries-plot",
                             style={'height': '110vh'}
                         )
                     ], className="timeseries-container", style={'margin-top': '20px', 'clear': 'both'})
                 ], className="main-content", style={'width': '75%', 'float': 'right', 'padding': '10px'})
             ], className="dashboard-container", style={'display': 'flex', 'flex-wrap': 'wrap'})
-        ])
-    ])
-], style={'max-width': '3000px', 'margin': '0 auto'})
+        ], style={'max-width': '3000px', 'margin': '0 auto'})
