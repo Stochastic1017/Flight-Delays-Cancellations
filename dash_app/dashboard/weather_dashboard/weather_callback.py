@@ -9,8 +9,9 @@ from .weather_helpers import (create_weather_map_figure, create_timeseries_plot)
 mapbox_token = "pk.eyJ1Ijoic3RvY2hhc3RpYzEwMTciLCJhIjoiY20ydmJpMzhrMGIwdDJqb2NoZGt5emw0YiJ9.QJXmXS_gHKVxDV4mVkmIOw"
 px.set_mapbox_access_token(mapbox_token)
 
-# Load data
-df_station = pd.read_csv("ncei-lcd-list-us.csv")
+# Load airport metadata
+weather_metdata = f"gs://airport-weather-data/ncei-lcd-list-us.csv"
+df_station = pd.read_csv(weather_metdata, storage_options={"token": "flights-weather-project-f94d306bee1f.json"})
 
 # Initial Plot Message
 def create_default_plot():

@@ -2,8 +2,9 @@
 import pandas as pd
 from dash import dcc, html
 
-# Load data
-df_station = pd.read_csv("ncei-lcd-list-us.csv")
+# Load airport metadata
+weather_metdata = f"gs://airport-weather-data/ncei-lcd-list-us.csv"
+df_station = pd.read_csv(weather_metdata, storage_options={"token": "flights-weather-project-f94d306bee1f.json"})
 
 years = [2018, 2019, 2020, 2021, 2022, 2023, 2024]
 
@@ -21,6 +22,7 @@ metrics = [
     {'label': 'Hourly Visibility', 'value': 'HourlyVisibility'},
     {'label': 'Hourly Station Pressure', 'value': 'HourlyStationPressure'},
     {'label': 'Hourly Wet Bulb Temperature', 'value': 'HourlyWetBulbTemperature'},
+    #{'label': 'Hourly Sky Conditions', 'value': 'HourlySkyConditions'},
 ]
 
 map_options = [

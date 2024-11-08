@@ -102,10 +102,14 @@ def create_correlation_heatmap(df):
 
 def create_airport_dashboard(airport, airport_id, year, month):
     try:
+        
         # Load data from Google Cloud Storage
         file_path = f"gs://airport-weather-data/transtat-bts/{airport}.csv"
         df = pd.read_csv(file_path, storage_options={"token": "flights-weather-project-f94d306bee1f.json"}, low_memory=False)
         df["FlightDate"] = pd.to_datetime(df["FlightDate"], errors='coerce')
+
+        fig_height = 1200
+        fig_width = 1600
 
         # Filter data for the specific month and year
         filtered_df = df[(df["FlightDate"].dt.month == month) & (df["FlightDate"].dt.year == year)].copy()
@@ -152,7 +156,8 @@ def create_airport_dashboard(airport, airport_id, year, month):
         # Update layout to accommodate subplots
         fig.update_layout(
             title=f"Airport Dashboard for {airport_id} in {year}-{month:02d}",
-            height=1200,  # Adjust height for better display
+            height=fig_height,  
+            width=fig_width,
             template="plotly_dark",
             showlegend=False
         )
@@ -172,6 +177,8 @@ def create_airport_dashboard(airport, airport_id, year, month):
         )
         fig.update_layout(
             title=f"Error - {airport_id} ({year}-{month})",
-            template="plotly_dark"
+            template="plotly_dark",
+            height=fig_height,  
+            width=fig_width,
         )
         return fig
