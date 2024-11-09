@@ -1,10 +1,14 @@
 
+import gcsfs
 import pandas as pd
 import numpy as np
 from dash import callback, Output, State, Input, html
 import plotly.graph_objects as go
 import plotly.express as px
-from .airport_helpers import create_airport_map_figure, create_airport_dashboard
+from .airport_helpers import create_airport_map_figure, create_delay_plots
+
+# Initialize Google Cloud Storage FileSystem
+fs = gcsfs.GCSFileSystem(project='Flights-Weather-Project', token='flights-weather-project-f94d306bee1f.json')
 
 # Mapbox token setup
 mapbox_token = "pk.eyJ1Ijoic3RvY2hhc3RpYzEwMTciLCJhIjoiY20ydmJpMzhrMGIwdDJqb2NoZGt5emw0YiJ9.QJXmXS_gHKVxDV4mVkmIOw"
@@ -17,7 +21,6 @@ df_airport = pd.read_csv(airport_metdata, storage_options={"token": "flights-wea
 # Load airport metadata
 weather_metdata = f"gs://airport-weather-data/closest_airport_weather.csv"
 df_weather = pd.read_csv(weather_metdata, storage_options={"token": "flights-weather-project-f94d306bee1f.json"})
-print(df_weather)
 
 # Default plot function for unselected states/cities
 def create_default_plot():
@@ -174,15 +177,14 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, selec
     [Input("airport-update-plot-button", "n_clicks")],
     [State("airport-enhanced-map", "clickData"),
      State("airport-year-selector", "value"),
-     State("airport-month-selector", "value")]
+     State("airport-plot-selector", "value")]
 )
-def update_visualization(n_clicks, click_data, selected_year, selected_month):
-    month = {"January": 1, "November": 11, "December": 12}[selected_month]
-
+def update_visualization(n_clicks, click_data, selected_year, selected_plot_type):
+    # Validate input: button click, map selection, year, and plot type
     if not n_clicks or not click_data:
         fig = create_default_plot()
         fig.add_annotation(
-            text="Please select a station on the map first",
+            text="Please select an airport on the map and choose data of interest.",
             xref="paper", yref="paper",
             x=0.5, y=0.5,
             showarrow=False,
@@ -190,7 +192,36 @@ def update_visualization(n_clicks, click_data, selected_year, selected_month):
         )
         return fig
 
-    station_id = click_data['points'][0]['hovertext']
-    station_info = df_airport[df_airport['AIRPORT_ID'] == station_id].iloc[0]
+    if not selected_year or not selected_plot_type:
+        fig = create_default_plot()
+        fig.add_annotation(
+            text="Please select a year and data of interest.",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font=dict(size=14)
+        )
+        return fig
 
-    return create_airport_dashboard(station_id, station_info['AIRPORT_NAME'], selected_year, month)
+    # Retrieve airport ID and information from the map click data
+    airport_id = click_data['points'][0]['hovertext']
+    try:
+        airport_info = df_airport[df_airport['AIRPORT_ID'] == airport_id].iloc[0]
+        airport_name = airport_info['DISPLAY_AIRPORT_NAME']
+        airport_city = airport_info['City']
+        airport_state = airport_info['State']
+        title_info = f"{airport_name} ({airport_id}) - {airport_city}, {airport_state}"
+    except IndexError:
+        # Handle the case where the airport ID is not found in the dataframe
+        fig = create_default_plot()
+        fig.add_annotation(
+            text="Selected airport data not available.",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font=dict(size=14, color="red")
+        )
+        return fig
+
+    if selected_plot_type == "Delay Viz":
+        return create_delay_plots(airport_id, selected_year, title_info=title_info)

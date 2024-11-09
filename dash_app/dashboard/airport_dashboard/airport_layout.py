@@ -1,8 +1,11 @@
 
+import gcsfs
 import pandas as pd
 from dash import dcc, html
 
-# Load data
+# Initialize Google Cloud Storage FileSystem
+fs = gcsfs.GCSFileSystem(project='Flights-Weather-Project', token='flights-weather-project-f94d306bee1f.json')
+
 # Load airport metadata
 airport_metdata = f"gs://airport-weather-data/airports-list-us.csv"
 df_airport = pd.read_csv(airport_metdata, storage_options={"token": "flights-weather-project-f94d306bee1f.json"})
@@ -12,7 +15,6 @@ states = [{'label': state, 'value': state}
           for state in df_airport['State'].unique()]
 
 years = [2018, 2019, 2020, 2021, 2022, 2023, 2024]
-months = ["January", "November", "December"]
 
 map_options = [
     {'label': 'Streets', 'value': 'streets-v11'},
@@ -139,10 +141,10 @@ airport_dashboard_layout = html.Div([
                                 clearable=False
                             ),
                             dcc.Dropdown(
-                                id='airport-month-selector',
-                                options=[{'label': str(month), 'value': month} for month in months],
-                                value=months[0],
-                                placeholder="Select Month",
+                                id='airport-plot-selector',
+                                options=[{'label': "Departure delay vs Arrival delay Visualizations", 'value': "Delay Viz"}],
+                                value="Delay Viz",
+                                placeholder="Select Data of Interest",
                                 className="dropdown time-series-settings-dropdown",
                                 searchable=True,
                                 clearable=False
