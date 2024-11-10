@@ -59,7 +59,7 @@ weather_dashboard_layout = html.Div([
                         dcc.Dropdown(
                             id='weather-mapbox-style-selector',
                             options=map_options,
-                            value='navigation-night-v1',
+                            value='navigation-day-v1',
                             className="dropdown",
                             clearable=False
                         ),

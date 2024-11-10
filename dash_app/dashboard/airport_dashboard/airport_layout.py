@@ -1,7 +1,7 @@
 
 import gcsfs
 import pandas as pd
-from dash import dcc, html
+from dash import dcc, html, Output, Input, callback
 
 # Initialize Google Cloud Storage FileSystem
 fs = gcsfs.GCSFileSystem(project='Flights-Weather-Project', token='flights-weather-project-f94d306bee1f.json')
@@ -15,6 +15,7 @@ states = [{'label': state, 'value': state}
           for state in df_airport['State'].unique()]
 
 years = [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+months = {"January": 1, "November": 11, "December": 12}
 
 map_options = [
     {'label': 'Streets', 'value': 'streets-v11'},
@@ -25,6 +26,27 @@ map_options = [
     {'label': 'Satellite Streets', 'value': 'satellite-streets-v11'},
     {'label': 'Navigation Day', 'value': 'navigation-day-v1'},
     {'label': 'Navigation Night', 'value': 'navigation-night-v1'}
+]
+
+airport_color_scales = [
+    {'label': 'Viridis', 'value': 'Viridis'},
+    {'label': 'Plasma', 'value': 'Plasma'},
+    {'label': 'Cividis', 'value': 'Cividis'},
+    {'label': 'Inferno', 'value': 'Inferno'},
+    {'label': 'Magma', 'value': 'Magma'},
+    {'label': 'Turbo', 'value': 'Turbo'},
+    {'label': 'Rainbow', 'value': 'Rainbow'},
+    {'label': 'Bluered', 'value': 'Bluered'},
+    {'label': 'Electric', 'value': 'Electric'}
+]
+
+gradient_types = [
+    {'label': 'No Gradient', 'value': ''},
+    {'label': 'Cancellations', 'value': 'CancellationRate'},
+    {'label': 'Average Arrival Delay', 'value': 'AvgArrivalDelay'},
+    {'label': 'Average Departure Delay', 'value': 'AvgDepartureDelay'},
+    {'label': 'Average Total Flight Delay', 'value': 'AvgTotalFlightDelay'},
+    {'label': 'Average Taxi Delay', 'value': 'AvgTaxiDelay'}
 ]
 
 # Define the layout for the airport dashboard
@@ -39,10 +61,28 @@ airport_dashboard_layout = html.Div([
                         dcc.Dropdown(
                             id='airport-mapbox-style-selector',
                             options=map_options,
-                            value='streets-v11',
+                            value='navigation-day-v1',
                             className="dropdown",
                             clearable=False
                         ),
+                        html.Label('Gradient Marker Color', className="label"),
+                        dcc.Dropdown(
+                            id='gradient-marker-col',
+                            options=gradient_types,
+                            placeholder="Select Gradient",
+                            value='',
+                            className="dropdown",
+                            clearable=False,
+                            multi=False
+                        ),
+                        html.Label('Color Scale', className="label"),
+                        dcc.Dropdown(
+                            id='airport-color-scale-selector',
+                            options=airport_color_scales,
+                            value='Viridis',
+                            className="dropdown",
+                            clearable=False
+                        )
                     ], className="control-panel-section"),
 
                     html.Div([
@@ -131,24 +171,35 @@ airport_dashboard_layout = html.Div([
                         html.Div(id="airport-station-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
                         html.Div([
                             html.Label('Data Exploration Settings', className="label"),
-                            dcc.Dropdown(
-                                id='airport-year-selector',
-                                options=[{'label': str(year), 'value': year} for year in years],
-                                value=years[0],
-                                placeholder="Select Year",
-                                className="dropdown time-series-settings-dropdown",
-                                searchable=True,
-                                clearable=False
-                            ),
-                            dcc.Dropdown(
-                                id='airport-plot-selector',
-                                options=[{'label': "Departure delay vs Arrival delay Visualizations", 'value': "Delay Viz"}],
-                                value="Delay Viz",
-                                placeholder="Select Data of Interest",
-                                className="dropdown time-series-settings-dropdown",
-                                searchable=True,
-                                clearable=False
-                            ),
+                        dcc.Dropdown(
+                            id='airport-plot-selector',
+                            options=[
+                                {'label': "Departure delay vs Arrival delay Visualizations", 'value': "Delay Viz"},
+                                {'label': "Cancellation Visualizations", 'value': "Cancel Viz"}
+                            ],
+                            value="Delay Viz",
+                            placeholder="Select Data of Interest",
+                            className="dropdown time-series-settings-dropdown",
+                            searchable=True,
+                            clearable=False
+                        ),
+                        dcc.Dropdown(
+                            id='airport-year-selector',
+                            options=[{'label': str(year), 'value': year} for year in years],
+                            value=years[0],
+                            placeholder="Select Year",
+                            className="dropdown time-series-settings-dropdown",
+                            searchable=True,
+                            clearable=False
+                        ),
+                        dcc.Dropdown(
+                            id='airport-month-selector',
+                            placeholder="Select Month",
+                            value=1,
+                            className="dropdown time-series-settings-dropdown",
+                            searchable=True,
+                            clearable=False
+                        ),
                             html.Button("Update Plot", id="airport-update-plot-button", className="update-plot-button", style={'margin-top': '10px'})
                         ], className="time-series-settings-section", style={'margin-top': '20px'})
                     ], className="station-info-and-settings-container", style={'width': '75%', 'float': 'right', 'padding': '10px'}),
@@ -162,3 +213,18 @@ airport_dashboard_layout = html.Div([
                 ], className="main-content", style={'width': '75%', 'float': 'right', 'padding': '10px'})
             ], className="dashboard-container", style={'display': 'flex', 'flex-wrap': 'wrap'})
         ], style={'max-width': '3000px', 'margin': '0 auto'})
+
+# Update month dropdown options based on the selected year
+@callback(
+    Output('airport-month-selector', 'options'),
+    Input('airport-year-selector', 'value')
+)
+def update_month_options(selected_year):
+    if selected_year == 2024:
+        # Only include January for 2024
+        available_months = {"January": 1}
+    else:
+        # Include January, November, and December for other years
+        available_months = months
+    
+    return [{'label': k, 'value': v} for k, v in available_months.items()]

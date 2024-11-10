@@ -43,9 +43,6 @@ def create_timeseries_plot(station, year, metric, title_info):
         months_to_plot = [1, 11, 12]  # January, November, December
         filtered_df = df[(df["UTC_DATE"].dt.month.isin(months_to_plot)) & 
                          (df["UTC_DATE"].dt.year == year)].copy()
-
-        fig_height = 1200
-        fig_width = 1600
         
         if filtered_df.empty:
             raise ValueError(f"Data not available for {metric}: {station}, {year}")        
@@ -159,8 +156,8 @@ def create_timeseries_plot(station, year, metric, title_info):
                 y=0.98, 
                 x=0.5
             ),
-            height=fig_height,
-            width=fig_width,
+            height=1060,
+            width=1510,
             template="plotly_dark",
             showlegend=False,
             hovermode='closest',
@@ -182,7 +179,7 @@ def create_timeseries_plot(station, year, metric, title_info):
         fig.update_layout(
             title=f"Error - {station} ({year})",
             template='plotly_dark',
-            height=fig_height,
-            width=fig_width
+            height=1060,
+            width=1510,
         )
         return fig

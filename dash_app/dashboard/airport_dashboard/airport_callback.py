@@ -5,7 +5,7 @@ import numpy as np
 from dash import callback, Output, State, Input, html
 import plotly.graph_objects as go
 import plotly.express as px
-from .airport_helpers import create_airport_map_figure, create_delay_plots
+from .airport_helpers import create_airport_map_figure, create_delay_plots, create_cancellation_plot
 
 # Initialize Google Cloud Storage FileSystem
 fs = gcsfs.GCSFileSystem(project='Flights-Weather-Project', token='flights-weather-project-f94d306bee1f.json')
@@ -42,14 +42,17 @@ def create_default_plot():
     [Input("airport-mapbox-style-selector", "value"),
      Input("airport-marker-size", "value"),
      Input("airport-marker-opacity", "value"),
+     Input("gradient-marker-col", "value"),
+     Input("airport-color-scale-selector", "value"),
      Input("airport-state-selector", "value"),
      Input("airport-city-selector", "value"),
      Input("airport-enhanced-map", "clickData"),
      Input("n_closest_slider", "value"),
      Input("max_weather_dist", "value")]
 )
-def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, selected_state, selected_city, click_data, n_closest, max_distance):
-
+def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, gradient_type, color_scale,
+                                selected_state, selected_city, click_data, n_closest, max_distance):
+    
     # Filter city options based on the selected state
     if selected_state:
         city_options = [{'label': city, 'value': city} 
@@ -65,8 +68,15 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, selec
     if selected_city:
         filtered_df = filtered_df[filtered_df['City'] == selected_city]
 
-    # Create the map figure with base airport markers
-    fig = create_airport_map_figure(mapbox_style, marker_size, marker_opacity, filtered_df)
+    # Create the map figure with updated gradient and color scale
+    fig = create_airport_map_figure(
+        mapbox_style=mapbox_style,
+        marker_size=marker_size,
+        marker_opacity=marker_opacity,
+        filtered_df=filtered_df,
+        color_scale=color_scale,
+        color_by_metric=gradient_type
+    )
 
     # Initialize airport_info and default map center/zoom
     airport_info = None
@@ -177,9 +187,10 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, selec
     [Input("airport-update-plot-button", "n_clicks")],
     [State("airport-enhanced-map", "clickData"),
      State("airport-year-selector", "value"),
+     State("airport-month-selector", "value"),
      State("airport-plot-selector", "value")]
 )
-def update_visualization(n_clicks, click_data, selected_year, selected_plot_type):
+def update_visualization(n_clicks, click_data, selected_year, selected_month, selected_plot_type):
     # Validate input: button click, map selection, year, and plot type
     if not n_clicks or not click_data:
         fig = create_default_plot()
@@ -224,4 +235,7 @@ def update_visualization(n_clicks, click_data, selected_year, selected_plot_type
         return fig
 
     if selected_plot_type == "Delay Viz":
-        return create_delay_plots(airport_id, selected_year, title_info=title_info)
+        return create_delay_plots(airport_id, selected_year, selected_month, title_info=title_info)
+    
+    if selected_plot_type == "Cancel Viz":
+        return  create_cancellation_plot(airport_id, selected_year, selected_month, title_info=title_info)
