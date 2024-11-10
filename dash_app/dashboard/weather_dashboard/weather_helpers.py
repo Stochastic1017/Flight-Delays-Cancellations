@@ -13,7 +13,7 @@ warnings.simplefilter("ignore", category=FutureWarning)
 # Initialize Google Cloud Storage FileSystem
 fs = gcsfs.GCSFileSystem(project='Flights-Weather-Project', token='flights-weather-project-f94d306bee1f.json')
 
-def create_weather_map_figure(mapbox_style, marker_size, marker_opacity, weather_color_scale, filtered_df):
+def create_weather_map_figure(mapbox_style, marker_size, marker_opacity, weather_color_scale, filtered_df, center=None, zoom=3.5):
     fig = px.scatter_mapbox(
         filtered_df,
         lat="latitude",
@@ -27,8 +27,8 @@ def create_weather_map_figure(mapbox_style, marker_size, marker_opacity, weather
     fig.update_layout(
         mapbox=dict(
             style=f"mapbox://styles/mapbox/{mapbox_style}",
-            zoom=3.5,
-            center={"lat": 37.0902, "lon": -95.7129},
+            zoom=zoom,
+            center=center or {"lat": 37.0902, "lon": -95.7129},  # Default center for the US
         ),
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
         showlegend=False

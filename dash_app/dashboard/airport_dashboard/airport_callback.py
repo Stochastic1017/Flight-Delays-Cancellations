@@ -29,8 +29,8 @@ def create_default_plot():
         plot_bgcolor="black",
         paper_bgcolor="black",
         title="",
-        height=600,
-        width=800,
+        height=1060,
+        width=1510,
         template="plotly_dark"
     )
     return fig

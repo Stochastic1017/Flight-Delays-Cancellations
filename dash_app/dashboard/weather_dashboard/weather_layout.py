@@ -54,6 +54,26 @@ weather_dashboard_layout = html.Div([
                 # Control panel and layout elements
                 html.Div([
                     html.H3("Control Panel", className="section-title"),
+
+                                        html.Div([
+                        html.Label('Location Filters', className="label"),
+                        dcc.Dropdown(
+                            id='weather-state-selector',
+                            options=states,
+                            placeholder="Select State",
+                            className="dropdown",
+                            clearable=True,
+                            multi=False
+                        ),
+                        dcc.Dropdown(
+                            id='weather-city-selector',
+                            placeholder="Select City",
+                            className="dropdown",
+                            clearable=True,
+                            multi=False
+                        )
+                    ], className="control-panel-section"),
+                    
                     html.Div([
                         html.Label('Visualization Settings', className="label"),
                         dcc.Dropdown(
@@ -95,25 +115,6 @@ weather_dashboard_layout = html.Div([
                             className='custom-slider'
                         )
                     ], className="control-panel-section"),
-
-                    html.Div([
-                        html.Label('Location Filters', className="label"),
-                        dcc.Dropdown(
-                            id='weather-state-selector',
-                            options=states,
-                            placeholder="Select State",
-                            className="dropdown",
-                            clearable=True,
-                            multi=False
-                        ),
-                        dcc.Dropdown(
-                            id='weather-city-selector',
-                            placeholder="Select City",
-                            className="dropdown",
-                            clearable=True,
-                            multi=False
-                        )
-                    ], className="control-panel-section")
                 ], className="control-panel", style={'width': '15%', 'float': 'left', 'padding': '10px'}),
 
                 html.Div([
