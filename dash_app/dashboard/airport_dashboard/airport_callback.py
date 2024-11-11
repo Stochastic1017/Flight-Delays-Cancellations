@@ -2,9 +2,11 @@
 import gcsfs
 import pandas as pd
 import numpy as np
-from dash import callback, Output, State, Input, html
+from dash import callback, callback_context, Output, State, Input, html, ALL, ctx
+from dash.exceptions import PreventUpdate
 import plotly.graph_objects as go
 import plotly.express as px
+import json
 from .airport_helpers import create_airport_map_figure, create_delay_plots, create_cancellation_plot
 
 # Initialize Google Cloud Storage FileSystem
@@ -36,6 +38,73 @@ def create_default_plot():
     return fig
 
 @callback(
+    [Output('airport-search-results', 'children'),
+     Output('airport-search-results', 'style')],
+    [Input('airport-search-input', 'value')],
+    [State('airport-search-results', 'style')]
+)
+def update_search_results(search_value, current_style):
+    if not search_value:
+        return [], {'display': 'none'}
+    
+    # Filter airports based on search value
+    search_value = search_value.lower()
+    
+    # Convert columns to string type for searching
+    matching_airports = df_airport[
+        df_airport['DISPLAY_AIRPORT_NAME'].astype(str).str.lower().str.contains(search_value, na=False) |
+        df_airport['AIRPORT_ID'].astype(str).str.lower().str.contains(search_value, na=False) |
+        df_airport['AIRPORT'].astype(str).str.lower().str.contains(search_value, na=False) |
+        df_airport['AIRPORT_SEQ_ID'].astype(str).str.lower().str.contains(search_value, na=False)
+    ].head(10)  # Limit to top 10 results
+    
+    if matching_airports.empty:
+        return [html.Div("No matches found", style={'padding': '10px'})], {'display': 'block'}
+    
+    results = []
+    for _, airport in matching_airports.iterrows():
+        results.append(
+            html.Div(
+                f"{airport['DISPLAY_AIRPORT_NAME']} ({airport['AIRPORT_ID']})",
+                id={'type': 'airport-search-result', 'index': airport['AIRPORT_ID']},
+                className='search-result-item',
+                style={
+                    'padding': '8px',
+                    'cursor': 'pointer',
+                    'hover': {'backgroundColor': '#f0f0f0'}
+                }
+            )
+        )
+    
+    return results, {'display': 'block'}
+
+@callback(
+    Output('airport-enhanced-map', 'clickData'),
+    [Input({'type': 'airport-search-result', 'index': ALL}, 'n_clicks')],
+    [State({'type': 'airport-search-result', 'index': ALL}, 'id')]
+)
+def handle_search_selection(n_clicks, ids):
+    if not ctx.triggered:
+        raise PreventUpdate
+    
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+    airport_id = json.loads(triggered_id)['index']
+    
+    # Get the airport's data
+    airport_data = df_airport[df_airport['AIRPORT_ID'] == airport_id].iloc[0]
+    
+    # Create click data in the format expected by your existing callback
+    click_data = {
+        'points': [{
+            'lat': airport_data['LATITUDE'],
+            'lon': airport_data['LONGITUDE'],
+            'hovertext': airport_id  # This matches the format used in your update_map_and_station_info callback
+        }]
+    }
+    
+    return click_data
+
+@callback(
     [Output("airport-city-selector", "options"),
      Output("airport-enhanced-map", "figure"),
      Output("airport-info-table", "children")],
@@ -47,12 +116,15 @@ def create_default_plot():
      Input("airport-state-selector", "value"),
      Input("airport-city-selector", "value"),
      Input("airport-enhanced-map", "clickData"),
-     Input("n_closest_slider", "value"),
-     Input("max_weather_dist", "value")]
+     Input("binary_disp_weather_station", "value")]
 )
 def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, gradient_type, color_scale,
-                                selected_state, selected_city, click_data, n_closest, max_distance):
+                                selected_state, selected_city, click_data, show_weather_station):
     
+    # Determine which input triggered the callback
+    ctx = callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
     # Filter city options based on the selected state
     if selected_state:
         city_options = [{'label': city, 'value': city} 
@@ -68,7 +140,30 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, gradi
     if selected_city:
         filtered_df = filtered_df[filtered_df['City'] == selected_city]
 
-    # Create the map figure with updated gradient and color scale
+    # Initialize default map center and zoom level
+    center = dict(lat=39.8283, lon=-98.5795)  # Center of the U.S.
+    zoom = 3  # Default zoom level for the U.S. view
+
+    # Check if callback was triggered by a marker click
+    airport_info = None
+    if trigger_id == "airport-enhanced-map" and click_data:
+        # Zoom in to the clicked airport's location
+        airport_id = click_data['points'][0]['hovertext']
+        airport_info = df_airport[df_airport['AIRPORT_ID'] == airport_id].iloc[0]
+        try:
+            airport_lat, airport_lon = airport_info['LATITUDE'], airport_info['LONGITUDE']
+            center = dict(lat=airport_lat, lon=airport_lon)
+            zoom = 8  # Closer zoom level for selected airport
+        except Exception as e:
+            print(f"Error parsing coordinates: {e}")
+
+    # Check if the callback was triggered by marker size or opacity change
+    elif trigger_id in ["airport-marker-size", "airport-marker-opacity"]:
+        # Reset to show the entire U.S. view
+        center = dict(lat=39.8283, lon=-98.5795)
+        zoom = 3
+
+    # Create the map figure
     fig = create_airport_map_figure(
         mapbox_style=mapbox_style,
         marker_size=marker_size,
@@ -78,85 +173,7 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, gradi
         color_by_metric=gradient_type
     )
 
-    # Initialize airport_info and default map center/zoom
-    airport_info = None
-    center = dict(lat=39.8283, lon=-98.5795)  # Center of USA
-    zoom = 3  # Default zoom level
-
-    # If an airport is clicked, find and display the closest weather stations
-    if click_data:
-        airport_id = click_data['points'][0]['hovertext']
-        
-        # Retrieve airport info from df_weather to ensure matching columns
-        if not df_weather[df_weather['AIRPORT_ID'] == airport_id].empty:
-            airport_info = df_weather[df_weather['AIRPORT_ID'] == airport_id].iloc[0]
-            
-            # Parse the AIRPORT_COORDINATES if it is a string
-            try:
-                airport_lat, airport_lon = eval(airport_info['AIRPORT_COORDINATES'])
-                # Update center and zoom for the clicked airport
-                center = dict(lat=airport_lat, lon=airport_lon)
-                zoom = 8  # Closer zoom level for selected airport
-
-            except Exception as e:
-                print(f"Error parsing coordinates: {e}")
-                airport_lat, airport_lon = None, None
-
-            # Filter weather stations within the maximum distance ceiling
-            filtered_stations = df_weather[(df_weather['AIRPORT_ID'] == airport_id) & 
-                                           (df_weather['DISTANCE_KM'] <= max_distance)]
-            # Get the n closest weather stations within the filtered range
-            closest_stations = filtered_stations.nsmallest(n_closest, 'DISTANCE_KM')
-
-            # Add enhanced markers for weather stations with hover data
-            fig.add_trace(go.Scattermapbox(
-                lat=[eval(coord)[0] for coord in closest_stations['WEATHER_COORDINATES']],
-                lon=[eval(coord)[1] for coord in closest_stations['WEATHER_COORDINATES']],
-                mode='markers',
-                marker=go.scattermapbox.Marker(
-                    size=15,
-                    opacity=1.0,
-                    color='black'
-                ),
-                hovertext=closest_stations.apply(
-                    lambda x: f"Station: {x['WEATHER_STATION_NAME']}<br>" +
-                            f"Distance: {x['DISTANCE_KM']:.1f} km<br>" +
-                            f"Elevation: {x['WEATHER_ELEVATION']} m",
-                    axis=1
-                ),
-                name='Weather Stations',
-                hoverinfo='text'  # Ensure hoverinfo is set to text
-            ))
-
-            # Draw enhanced connection lines with gradients and hover info
-            for _, station in closest_stations.iterrows():
-                weather_lat, weather_lon = eval(station['WEATHER_COORDINATES'])
-                
-                # Create gradient effect with multiple segments
-                num_segments = 20
-                lat_points = np.linspace(airport_lat, weather_lat, num_segments)
-                lon_points = np.linspace(airport_lon, weather_lon, num_segments)
-                
-                # Calculate opacity gradient
-                opacities = np.linspace(0.2, 0.8, num_segments-1)
-                
-                # Add segments with decreasing opacity
-                for i in range(len(lat_points)-1):
-                    fig.add_trace(go.Scattermapbox(
-                        lat=[lat_points[i], lat_points[i+1]],
-                        lon=[lon_points[i], lon_points[i+1]],
-                        mode='lines',
-                        line=dict(
-                            width=2,
-                            color=f'rgba(0, 0, 0, {opacities[i]})'
-                        ),
-                        hovertext=f"Connection to {station['WEATHER_STATION_NAME']}<br>" +
-                                  f"Distance: {station['DISTANCE_KM']:.1f} km",
-                        hoverinfo='text',
-                        showlegend=False
-                    ))
-
-    # Update the map layout with new center and zoom
+    # Update map layout with the determined center and zoom
     fig.update_layout(
         mapbox=dict(
             center=center,
@@ -164,16 +181,15 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, gradi
         )
     )
 
-    # Generate station info table if airport_info is set
+    # Generate airport info table if airport_info is available
     if airport_info is not None:
         station_info_table = html.Table([
             html.Tr([html.Th("Airport Info")]),
-            html.Tr([html.Td("Name:"), html.Td(airport_info.get("AIRPORT_DISPLAY_NAME", "N/A"))]),
-            html.Tr([html.Td("Airport:"), html.Td(airport_info.get("AIRPORT_NAME", "N/A"))]),
-            html.Tr([html.Td("Coordinates:"), html.Td(f"({airport_lat}, {airport_lon})")]),
-            html.Tr([html.Td("State:"), html.Td(airport_info.get("AIRPORT_STATE", "N/A"))]),
-            html.Tr([html.Td("City:"), html.Td(airport_info.get("AIRPORT_CITY", "N/A"))]),
-            html.Tr([html.Td("Country:"), html.Td(airport_info.get("AIRPORT_COUNTRY", "N/A"))]),
+            html.Tr([html.Td("Name:"), html.Td(airport_info.get("DISPLAY_AIRPORT_NAME"))]),
+            html.Tr([html.Td("Airport Code:"), html.Td(airport_info.get("AIRPORT"))]),
+            html.Tr([html.Td("Coordinates:"), html.Td(f"({airport_info.get('LATITUDE')}, {airport_info.get('LONGITUDE')})")]),
+            html.Tr([html.Td("State:"), html.Td(airport_info.get("State"))]),
+            html.Tr([html.Td("City:"), html.Td(airport_info.get("City"))])
         ])
     else:
         station_info_table = html.Table([
@@ -195,18 +211,7 @@ def update_visualization(n_clicks, click_data, selected_year, selected_month, se
     if not n_clicks or not click_data:
         fig = create_default_plot()
         fig.add_annotation(
-            text="Please select an airport on the map and choose data of interest.",
-            xref="paper", yref="paper",
-            x=0.5, y=0.5,
-            showarrow=False,
-            font=dict(size=14)
-        )
-        return fig
-
-    if not selected_year or not selected_plot_type:
-        fig = create_default_plot()
-        fig.add_annotation(
-            text="Please select a year and data of interest.",
+            text="Please select a airport on the map.",
             xref="paper", yref="paper",
             x=0.5, y=0.5,
             showarrow=False,

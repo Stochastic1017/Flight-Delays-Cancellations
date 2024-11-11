@@ -1,4 +1,5 @@
 
+import numpy as np
 import pandas as pd
 from dash import dcc, html
 
@@ -55,7 +56,7 @@ weather_dashboard_layout = html.Div([
                 html.Div([
                     html.H3("Control Panel", className="section-title"),
 
-                                        html.Div([
+                     html.Div([
                         html.Label('Location Filters', className="label"),
                         dcc.Dropdown(
                             id='weather-state-selector',
@@ -93,28 +94,29 @@ weather_dashboard_layout = html.Div([
                         )
                     ], className="control-panel-section"),
 
-                    html.Div([
-                        html.Label('Marker Size', className="label"),
-                        dcc.Slider(
-                            id='weather-marker-size',
-                            min=5,
-                            max=25,
-                            step=1,
-                            value=10,
-                            marks={i: str(i) for i in range(5, 26, 5)},
-                            className='custom-slider'
-                        ),
-                        html.Label('Marker Opacity', className="label"),
-                        dcc.Slider(
-                            id='weather-marker-opacity',
-                            min=0.1,
-                            max=1.0,
-                            step=0.1,
-                            value=0.5,
-                            marks={i/10: str(i/10) for i in range(1, 11)},
-                            className='custom-slider'
-                        )
-                    ], className="control-panel-section"),
+        # Marker Settings
+        html.Div([
+            html.Label('Marker Size', className="label"),
+            dcc.Slider(
+                id='weather-marker-size',
+                min=0,
+                max=20,
+                step=1,
+                value=10,
+                marks={i: str(i) for i in range(0, 21, 5)},
+                className='custom-slider'
+            ),
+            html.Label('Marker Opacity', className="label"),
+            dcc.Slider(
+                id='weather-marker-opacity',
+                min=0,
+                max=1,
+                step=0.1,
+                value=0.5,
+                marks={i: str(i) for i in np.linspace(0.0, 1.0, 5)},
+                className='custom-slider'
+            )
+        ], className="control-panel-section", style={'margin-bottom': '10px'}),
                 ], className="control-panel", style={'width': '15%', 'float': 'left', 'padding': '10px'}),
 
                 html.Div([

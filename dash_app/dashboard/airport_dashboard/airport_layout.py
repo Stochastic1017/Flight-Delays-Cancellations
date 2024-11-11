@@ -1,5 +1,6 @@
 
 import gcsfs
+import numpy as np
 import pandas as pd
 from dash import dcc, html, Output, Input, callback
 
@@ -11,9 +12,7 @@ airport_metdata = f"gs://airport-weather-data/airports-list-us.csv"
 df_airport = pd.read_csv(airport_metdata, storage_options={"token": "flights-weather-project-f94d306bee1f.json"})
 
 # Unique states and cities for dropdown filtering
-states = [{'label': state, 'value': state} 
-          for state in df_airport['State'].unique()]
-
+states = [{'label': state, 'value': state} for state in df_airport['State'].unique()]
 years = [2018, 2019, 2020, 2021, 2022, 2023, 2024]
 months = {"January": 1, "November": 11, "December": 12}
 
@@ -52,156 +51,177 @@ gradient_types = [
 # Define the layout for the airport dashboard
 airport_dashboard_layout = html.Div([
     html.Div([
-        html.H3("Control Panel", className="section-title"),
-
-        # Location Filters
+        # Control panel and layout elements
         html.Div([
-            html.Label('Location Filters', className="label"),
-            dcc.Dropdown(
-                id='airport-state-selector',
-                options=states,
-                placeholder="Select State",
-                className="dropdown",
-                clearable=True
-            ),
-            dcc.Dropdown(
-                id='airport-city-selector',
-                placeholder="Select City",
-                className="dropdown",
-                clearable=True
-            )
-        ], className="control-panel-section", style={'margin-bottom': '10px'}),
+            html.H3("Control Panel", className="section-title"),
 
-        # Marker Settings
+            # Search Bar Section
+            html.Div([
+                html.Label('Search Airports', className="label"),
+                dcc.Input(
+                    id='airport-search-input',
+                    type='text',
+                    placeholder='Search by name, ID or code...',
+                    className="search-input",
+                    style={
+                        'width': '100%',
+                        'padding': '8px',
+                        'borderRadius': '4px',
+                        'border': '1px solid #ddd',
+                        'marginBottom': '10px'
+                    }
+                ),
+                html.Div(
+                    id='airport-search-results',
+                    className="search-results",
+                    style={
+                        'maxHeight': '200px',
+                        'overflowY': 'auto',
+                        'border': '1px solid #ddd',
+                        'borderRadius': '4px',
+                        'display': 'none'
+                    }
+                ),
+                dcc.Checklist(
+                    id='binary_disp_weather_station',
+                    options=[{'label': 'Show Nearby Weather Stations', 'value': 'visible'}],
+                    value=['visible'],
+                    inline=True,
+                    className="control-panel-section"
+                )
+            ], className="control-panel-section"),
+
+            # Location Filters
+            html.Div([
+                html.Label('Location Filters', className="label"),
+                dcc.Dropdown(
+                    id='airport-state-selector',
+                    options=states,
+                    placeholder="Select State",
+                    className="dropdown",
+                    clearable=True
+                ),
+                dcc.Dropdown(
+                    id='airport-city-selector',
+                    placeholder="Select City",
+                    className="dropdown",
+                    clearable=True
+                )
+            ], className="control-panel-section"),
+
+            # Marker Settings
+            html.Div([
+                html.Label('Marker Size', className="label"),
+                dcc.Slider(
+                    id='airport-marker-size',
+                    min=0,
+                    max=20,
+                    step=1,
+                    value=10,
+                    marks={i: str(i) for i in range(0, 21, 5)},
+                    className='custom-slider'
+                ),
+                html.Label('Marker Opacity', className="label"),
+                dcc.Slider(
+                    id='airport-marker-opacity',
+                    min=0,
+                    max=1,
+                    step=0.1,
+                    value=0.5,
+                    marks={i: str(i) for i in np.linspace(0.0, 1.0, 5)},
+                    className='custom-slider'
+                )
+            ], className="control-panel-section"),
+
+            # Visualization Settings
+            html.Div([
+                html.Label('Visualization Settings', className="label"),
+                dcc.Dropdown(
+                    id='airport-mapbox-style-selector',
+                    options=map_options,
+                    value='navigation-day-v1',
+                    className="dropdown",
+                    clearable=False
+                ),
+                dcc.Dropdown(
+                    id='gradient-marker-col',
+                    options=gradient_types,
+                    placeholder="Select Gradient",
+                    value='',
+                    className="dropdown",
+                    clearable=False
+                ),
+                dcc.Dropdown(
+                    id='airport-color-scale-selector',
+                    options=airport_color_scales,
+                    value='Viridis',
+                    className="dropdown",
+                    clearable=False
+                )
+            ], className="control-panel-section"),
+        ], className="control-panel", style={'width': '15%', 'float': 'left', 'padding': '10px'}),
+
         html.Div([
-            html.Label('Marker Size', className="label"),
-            dcc.Slider(
-                id='airport-marker-size',
-                min=5,
-                max=25,
-                step=1,
-                value=10,
-                marks={i: str(i) for i in range(5, 26, 10)},
-                className='custom-slider'
-            ),
-            html.Label('Opacity', className="label"),
-            dcc.Slider(
-                id='airport-marker-opacity',
-                min=0.1,
-                max=1.0,
-                step=0.1,
-                value=0.7,
-                marks={i/10: f"{i/10:.1f}" for i in range(1, 11, 2)},
-                className='custom-slider'
-            )
-        ], className="control-panel-section", style={'margin-bottom': '10px'}),
+            # Map without loading indicator
+            html.Div([
+                dcc.Graph(
+                    id="airport-enhanced-map",
+                    config={"scrollZoom": True},
+                    style={'height': '50vh'}
+                )
+            ], className="map-container", style={'margin-bottom': '20px'}),
 
-        # Weather Station Settings
-        html.Div([
-            html.Label('Weather Stations', className="label"),
-            dcc.Slider(
-                id='n_closest_slider',
-                min=1,
-                max=10,
-                step=1,
-                value=5,
-                marks={i: str(i) for i in range(1, 11, 2)},
-                className='custom-slider'
-            ),
-            html.Label('Max Distance', className="label"),
-            dcc.Slider(
-                id='max_weather_dist',
-                min=1,
-                max=100,
-                step=5,
-                value=50,
-                marks={i: str(i) for i in range(1, 101, 20)},
-                className='custom-slider'
-            ),
-            dcc.Checklist(
-                id='binary_disp_weather_station',
-                options=[{'label': 'Show Weather Stations', 'value': 'visible'}],
-                value=['visible'],
-                inline=True,
-                className="control-panel-section"
-            )
-        ], className="control-panel-section", style={'margin-bottom': '10px'}),
+            html.Div([
+                html.Div(id="airport-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
+                html.Div(id="airport-station-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
 
-                # Visualization Settings
-        html.Div([
-            html.Label('Visualization Settings', className="label"),
-            dcc.Dropdown(
-                id='airport-mapbox-style-selector',
-                options=map_options,
-                value='navigation-day-v1',
-                className="dropdown",
-                clearable=False
-            ),
-            dcc.Dropdown(
-                id='gradient-marker-col',
-                options=gradient_types,
-                placeholder="Select Gradient",
-                value='',
-                className="dropdown",
-                clearable=False
-            ),
-            dcc.Dropdown(
-                id='airport-color-scale-selector',
-                options=airport_color_scales,
-                value='Viridis',
-                className="dropdown",
-                clearable=False
-            )
-        ], className="control-panel-section", style={'margin-bottom': '10px'}),
+                # Data Exploration Settings
+                html.Div([
+                    html.Label('Data Exploration', className="label"),
+                    dcc.Dropdown(
+                        id='airport-plot-selector',
+                        options=[
+                            {'label': "Departure vs Arrival Delay", 'value': "Delay Viz"},
+                            {'label': "Cancellations", 'value': "Cancel Viz"}
+                        ],
+                        value="Delay Viz",
+                        placeholder="Select Data of Interest",
+                        className="dropdown",
+                        clearable=False
+                    ),
+                    dcc.Dropdown(
+                        id='airport-year-selector',
+                        options=[{'label': str(year), 'value': year} for year in years],
+                        value=years[0],
+                        placeholder="Select Year",
+                        className="dropdown",
+                        clearable=False
+                    ),
+                    dcc.Dropdown(
+                        id='airport-month-selector',
+                        placeholder="Select Month",
+                        value=1,
+                        className="dropdown",
+                        clearable=False
+                    ),
+                    html.Button("Update Plot", id="airport-update-plot-button", className="update-plot-button", style={'margin-top': '10px'})
+                ], className="time-series-settings-section", style={'margin-bottom': '20px'})
+            ], className="station-info-and-settings-container", style={'width': '75%', 'float': 'right', 'padding': '10px'}),
 
-    ], className="control-panel", style={'width': '15%', 'float': 'left', 'padding': '10px', 'margin-right': '20px'}),
-
-    html.Div([
-        # Map and Info Sections with slight margin adjustments
-        dcc.Graph(
-            id="airport-enhanced-map",
-            config={"scrollZoom": True},
-            style={'height': '45vh', 'margin-bottom': '20px'}
-        ),
-        html.Div(id="airport-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
-        html.Div(id="airport-station-info-table", className="station-info-table", style={'margin-bottom': '20px'}),
-
-        # Data Exploration Settings
-        html.Div([
-            html.Label('Data Exploration', className="label"),
-            dcc.Dropdown(
-                id='airport-plot-selector',
-                options=[
-                    {'label': "Departure vs Arrival Delay", 'value': "Delay Viz"},
-                    {'label': "Cancellations", 'value': "Cancel Viz"}
-                ],
-                value="Delay Viz",
-                placeholder="Select Data of Interest",
-                className="dropdown"
-            ),
-            dcc.Dropdown(
-                id='airport-year-selector',
-                options=[{'label': str(year), 'value': year} for year in years],
-                value=years[0],
-                placeholder="Select Year",
-                className="dropdown"
-            ),
-            dcc.Dropdown(
-                id='airport-month-selector',
-                placeholder="Select Month",
-                value=1,
-                className="dropdown"
-            ),
-            html.Button("Update Plot", id="airport-update-plot-button", className="update-plot-button", style={'margin-top': '10px'})
-        ], className="time-series-settings-section", style={'margin-bottom': '20px'}),
-
-        # Time Series Plot
-        dcc.Graph(
-            id="airport-timeseries-plot",
-            style={'height': '80vh'}
-        )
-    ], className="main-content", style={'width': '75%', 'float': 'right', 'padding': '10px'})
-], style={'max-width': '3000px', 'margin': '20px auto', 'padding-top': '20px', 'padding-left': '20px', 'display': 'flex', 'flex-wrap': 'wrap'})
+            # Time Series Plot with loading indicator
+            html.Div([
+                dcc.Loading(
+                    id="loading-timeseries-plot",
+                    type="cube",
+                    children=dcc.Graph(
+                        id="airport-timeseries-plot",
+                        style={'height': '80vh'}
+                    )
+                )
+            ], className="timeseries-container", style={'margin-top': '20px', 'clear': 'both'})
+        ], className="main-content", style={'width': '75%', 'float': 'right', 'padding': '10px'})
+    ], className="dashboard-container", style={'display': 'flex', 'flex-wrap': 'wrap'})
+], style={'max-width': '3000px', 'margin': '0 auto'})
 
 # Update month dropdown options based on the selected year
 @callback(

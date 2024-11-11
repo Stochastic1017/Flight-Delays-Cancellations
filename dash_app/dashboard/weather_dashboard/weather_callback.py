@@ -1,7 +1,7 @@
 
 import pandas as pd
 import plotly.graph_objects as go
-from dash import callback, Output, Input, State, html
+from dash import callback, callback_context, Output, Input, State, html
 import plotly.express as px
 from .weather_helpers import (create_weather_map_figure, create_timeseries_plot)
 
@@ -40,6 +40,10 @@ def create_default_plot():
 )
 def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, weather_color_scale, selected_state, selected_city, click_data):
     
+    # Determine the context of the callback
+    ctx = callback_context
+    trigger_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
     # City options based on selected state
     if selected_state:
         city_options = [{'label': city, 'value': city} 
@@ -55,12 +59,13 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, weath
     if selected_city:
         filtered_df = filtered_df[filtered_df['names'] == selected_city]
 
-    # Default map zoom and center
+    # Default map center and zoom level
     center = {"lat": 37.0902, "lon": -95.7129}
     zoom = 3.5
 
-    # Check for click data to set zoom and center to the clicked station
-    if click_data:
+    # Check if the callback was triggered by a marker click
+    if trigger_id == "weather-enhanced-map" and click_data:
+        # Zoom in to the clicked station's location
         station_name = click_data['points'][0]['hovertext']
         station_df = filtered_df[filtered_df['station'] == station_name]
         if not station_df.empty:
@@ -68,6 +73,13 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, weath
             center = {"lat": station_info["latitude"], "lon": station_info["longitude"]}
             zoom = 10  # Closer zoom level after clicking
 
+    # Check if the callback was triggered by marker size or opacity change
+    elif trigger_id in ["weather-marker-size", "weather-marker-opacity"]:
+        # Reset to show entire U.S. map view (default center and zoom)
+        center = {"lat": 37.0902, "lon": -95.7129}
+        zoom = 3.5
+
+    # Create the map figure
     fig = create_weather_map_figure(
         mapbox_style,
         marker_size,
@@ -78,8 +90,8 @@ def update_map_and_station_info(mapbox_style, marker_size, marker_opacity, weath
         zoom=zoom
     )
 
-    # Create station info table
-    if click_data and station_info:
+    # Create station info table if a station was clicked
+    if click_data and trigger_id == "weather-enhanced-map" and station_info:
         station_info_table = html.Table([
             html.Tr([html.Th("Station Info")]),
             html.Tr([html.Td("Name:"), html.Td(station_info["station_name"])]),
@@ -106,7 +118,7 @@ def update_timeseries(n_clicks, click_data, selected_year, selected_metric):
     if (n_clicks is None) or (not click_data):
         fig = create_default_plot()
         fig.add_annotation(
-            text="Please select a station on the map first",
+            text="Please select a weather station on the map.",
             xref="paper", yref="paper",
             x=0.5, y=0.5,
             showarrow=False,

@@ -1,4 +1,5 @@
 
+import time
 import gcsfs
 import plotly.graph_objects as go
 import pandas as pd
@@ -62,6 +63,7 @@ def create_airport_map_figure(mapbox_style, marker_size, marker_opacity, filtere
     return fig
 
 def create_delay_plots(airport_id, year, month, title_info):
+    time.sleep(3)
     try:
         file_path = f"gs://airport-weather-data/merged_data/{airport_id}_training_data.csv"
         df = pd.read_csv(
@@ -234,6 +236,7 @@ def create_delay_plots(airport_id, year, month, title_info):
         return fig
     
 def create_cancellation_plot(airport_id, year, month, title_info):
+    time.sleep(3)
     try:
         # Load the main dataset
         file_path = f"gs://airport-weather-data/merged_data/{airport_id}_training_data.csv"
